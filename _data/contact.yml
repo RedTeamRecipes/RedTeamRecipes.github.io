@@ -8,7 +8,17 @@
 
 - type: email
   icon: "fas fa-envelope"
-  noblank: true # open link in current tab
+  noblank: false # open link in current tab
+
+- type: reddit
+  icon: 'fa-brands fa-reddit'
+  url: 'https://www.reddit.com/r/RedTeamRecipes/' 
+
+- type: Telegram
+  icon: 'fa-brands fa-telegram'
+  url: 'https://t.me/RedTeamRecipes' 
+
+
 
 - type: rss
   icon: "fas fa-rss"
