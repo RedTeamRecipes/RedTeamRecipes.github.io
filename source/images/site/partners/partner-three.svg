@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">
+  <rect width="300" height="120" fill="#070c13"/>
+  <polygon points="40,90 80,30 120,90" fill="#ffb347"/>
+  <polygon points="80,90 120,30 160,90" fill="#00f6a2" opacity="0.8"/>
+  <text x="205" y="70" fill="#fff" font-family="'Space Grotesk',sans-serif" font-size="26">Partner Three</text>
+</svg>

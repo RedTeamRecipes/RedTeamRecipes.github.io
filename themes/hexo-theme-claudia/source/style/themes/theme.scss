@@ -1,0 +1,68 @@
+@use "./default-dark" as dark-theme;
+@use "./default-light" as light-theme;
+
+:root.appearance-light {
+  @include light-theme.light;
+}
+
+:root.appearance-dark {
+  @include dark-theme.dark;
+}
+
+:root.appearance-auto {
+  @include light-theme.light;
+
+  @media (prefers-color-scheme: dark) {
+    @include dark-theme.dark;
+  }
+}
+
+:root {
+  --backdropFilter: 20px;
+  --borderRadius: 6px;
+  --activeColor: #ff4d4d;
+  --boxShadow: 0 45px 70px -45px rgba(0, 0, 0, .95);
+
+  &.appearance-dark,
+  &.appearance-auto,
+  &.appearance-light {
+
+    background: var(--primary-bg-color);
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--primary-text-color)!important;
+    }
+
+    hr {
+      background: var(--third-bg-color);
+    }
+
+    p, strong, dl, ul, ol, cite, figcaption {
+      color: var(--second-text-color);
+    }
+
+    .post-container, .about-page {
+      span {
+        color: var(--second-text-color);
+      }
+    }
+
+    .content {
+      blockquote {
+        background: var(--third-bg-color);
+        border-color: var(--blockquote-border-color);
+      }
+
+      table {
+        th, tr, td {
+          border-color: var(--table-border-color);
+          color: var(--second-text-color)!important;
+        }
+      }
+    }
+  }
+  
+  .code {
+	  text-align: left;
+  }
+}

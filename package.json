@@ -1,9 +1,33 @@
 {
-  "name": "hexo-theme-claudia",
-  "version": "2.0.0",
-  "peerDependencies": {
-    "hexo": "^5.0.2",
-    "hexo-renderer-pug": "^1.0.0",
-    "hexo-renderer-sass": "^0.4.0"
+  "name": "hexo-site",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "hexo clean && hexo generate",
+    "clean": "hexo clean",
+    "deploy": "hexo clean && hexo deploy",
+    "server": "hexo server -p 4100",
+    "install": "git submodule update --init --recursive"
+  },
+  "hexo": {
+    "version": "7.3.0"
+  },
+  "dependencies": {
+    "hexo": "^7.3.0",
+    "hexo-deployer-git": "^3.0.0",
+    "hexo-generator-archive": "^1.0.0",
+    "hexo-generator-category": "^1.0.0",
+    "hexo-generator-feed": "^3.0.0",
+    "hexo-generator-index": "^2.0.0",
+    "hexo-generator-search": "^2.4.3",
+    "hexo-generator-sitemap": "^2.2.0",
+    "hexo-generator-tag": "^1.0.0",
+    "hexo-renderer-ejs": "^2.0.0",
+    "hexo-renderer-marked": "^7.0.1",
+    "hexo-renderer-pug": "^2.0.0",
+    "hexo-renderer-sass": "git+https://github.com/ZE3kr/hexo-renderer-sass.git",
+    "hexo-renderer-stylus": "^2.0.0",
+    "hexo-server": "^2.0.0",
+    "hexo-theme-landscape": "^0.0.3"
   }
 }

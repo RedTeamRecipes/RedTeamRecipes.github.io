@@ -1,0 +1,137 @@
+<!DOCTYPE html><html class="appearance-dark" lang="en"><head><meta charset="UTF-8"><link rel="canonical" href="https://www.redteamrecipes.com/categories/"><title>Categories | RTR</title><meta name="description" content="The only cookbook where evasions are on the menu"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="icon" href="/favicons/favicon.ico"><link rel="apple-touch-icon" href="/favicons/favicon.ico"><link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg"><link rel="preload" href="/style/base.css" as="style"><link rel="preload" href="/js/common.js" as="script"><link rel="stylesheet" href="/style/base.css"><meta name="description" content=""><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/feed.atom" title="RedTeam Recipes" type="application/atom+xml">
+</head><body class="is-flex is-flex-direction-column"><header class="header-widget is-flex-shrink-0 is-hidden-mobile"><div class="container is-fullhd is-flex is-justify-content-space-between is-align-items-center is-full-height"><section class="is-hidden-mobile is-flex-shrink-0"><h2><a href="/">RedTeam Recipes</a></h2></section><aside class="is-flex-shrink-0"><h3 class="is-inline-block"><a href="/" target="_top">Home</a></h3><h3 class="is-inline-block"><a href="/about/" target="_top">About</a></h3><h3 class="is-inline-block"><a href="/contact/" target="_top">contact</a></h3><h3 class="is-inline-block"><a href="/services/" target="_top">services</a></h3><h3 class="is-inline-block"><a href="/hall-of-fame/" target="_top">hall of fame</a></h3><h3 class="is-inline-block"><a href="/questions/" target="_top">questions</a></h3><h3 class="is-inline-block"><a href="/partners/" target="_top">trusted partners</a></h3><h3 class="is-inline-block"><a href="/privacy-policy/" target="_top">privacy policy</a></h3></aside></div></header><header class="is-flex header-widget is-flex-shrink-0 is-align-items-center is-justify-content-center is-hidden-tablet"><h3 class="is-inline-block"><a href="/" target="_top">Home</a></h3><h3 class="is-inline-block"><a href="/about/" target="_top">About</a></h3><h3 class="is-inline-block"><a href="/contact/" target="_top">contact</a></h3><h3 class="is-inline-block"><a href="/services/" target="_top">services</a></h3><h3 class="is-inline-block"><a href="/hall-of-fame/" target="_top">hall of fame</a></h3><h3 class="is-inline-block"><a href="/questions/" target="_top">questions</a></h3><h3 class="is-inline-block"><a href="/partners/" target="_top">trusted partners</a></h3><h3 class="is-inline-block"><a href="/privacy-policy/" target="_top">privacy policy</a></h3></header><main><main class="container content section post-page pt-4 px-4"><div class="columns is-flex-desktop is-justify-content-center is-flex-direction-row-reverse"><div class="column is-3 is-hidden"></div><div class="column is-9"><h1 class="mt-0 mb-1 is-family-serif" id="postTitle">Categories</h1><article class="mt-2 post-content"></article></div></div></main></main><footer class="is-flex is-flex-direction-column is-align-items-center is-flex-shrink-0 is-family-serif"><section class="sns-container"><!-- Mastodon--><!-- Bluesky--><!-- Matrix--><!-- Twitter--><!-- Weibo--><!-- Telegram--><a title="Telegram" target="_blank" rel="noopener nofollow" href="https://t.me/RedTeamRecipes"><svg class="icon has-text-grey"><use xlink:href="#icon-telegram"></use></svg></a><!-- Email--><a title="E-mail" target="_blank" rel="noopener nofollow" href="mailto:contact@redteamrecipes.com"><svg class="icon has-text-grey"><use xlink:href="#icon-mail-fill"></use></svg></a><!-- Github--><a title="GitHub" target="_blank" rel="noopener nofollow" href="https://github.com/RedTeamRecipes"><svg class="icon has-text-grey"><use xlink:href="#icon-github-fill"></use></svg></a><!-- Ins--><!-- RSS--><a title="RSS" target="_blank" rel="noopener nofollow" href="/feed.atom"><svg class="icon has-text-grey"><use xlink:href="#icon-feed"></use></svg></a></section><p><span>Copyright ©</span><span> RedTeam Recipes. </span><span></span></p><div><span><p>Use these notes responsibly.</p></span></div></footer><script src="/js/common.js"></script><script>var searchDatabase = []
+
+function renderSearchResults(results, searchResultEl) {
+    searchResultEl.innerHTML = null
+    var fragment = document.createDocumentFragment()
+
+    results.forEach(function (item) {
+        var link = document.createElement('a')
+        var title = document.createElement('h5')
+        var content = document.createElement('p')
+
+        title.className = 'mb-1'
+        title.innerText = item.title
+        content.innerHTML = item.content
+
+        link.href = item.link
+        link.appendChild(title)
+        link.appendChild(content)
+        link.className = 'p-4 is-block'
+
+        fragment.appendChild(link)
+    })
+
+    searchResultEl.appendChild(fragment)
+    searchResultEl.style.maxHeight = '550px'
+}
+
+function searching(inputText) {
+    var inputTexts = inputText.split(' ')
+    var searchResults = []
+    inputTexts.forEach(function (searchKey) {
+        var haveSearchValue = Boolean(searchKey.trim())
+        if (!haveSearchValue) return
+
+        var key = searchKey.toLowerCase()
+
+        for (var entry of searchDatabase) {
+            var title = entry.getElementsByTagName('title')[0].textContent
+            var link = entry.getElementsByTagName('link')[0].getAttribute('href')
+            var contentWithTags = entry.getElementsByTagName('content')[0].textContent
+            var content = contentWithTags.trim().replace(/<[^>]+>/g, '')
+            var rawContent = content.toLowerCase()
+
+            var LENGTH = 80
+            var finalContent = ''
+            var contentLength = rawContent.length
+            var searchResultIdx = rawContent.indexOf(key)
+
+            var startIdx = searchResultIdx - 20,
+                endIdx = startIdx + LENGTH
+
+            if (startIdx < 0) {
+                startIdx = 0
+                endIdx = 100
+            }
+
+            endIdx > contentLength && (endIdx = contentLength)
+
+            finalContent = content.substring(startIdx, endIdx)
+
+            if (title.toLowerCase().indexOf(key) > -1) {
+                searchResults.unshift({
+                    link: link,
+                    title: title,
+                    content: finalContent,
+                })
+            } else if (searchResultIdx > -1) {
+                searchResults.push({
+                    link: link,
+                    title: title,
+                    content: finalContent,
+                })
+            }
+        }
+    })
+    return searchResults
+}
+</script><script>$claudia.fadeInImage(null, $claudia.blurBackdropImg)
+
+window.addEventListener('resize', $claudia.throttle(function () {
+  var images = document.querySelectorAll('.js-img-fadeIn')
+  images.forEach($claudia.blurBackdropImg)
+}, 150))
+
+var timeout
+
+function videoScroll () {
+  if (timeout) {
+    clearTimeout(timeout)
+  }
+  timeout = setTimeout(function () {
+    var hasHover = false
+    document.querySelectorAll('.tlo-header').forEach(function (header) {
+      if (!hasHover && header.getBoundingClientRect().top + header.clientHeight < window.innerHeight && header.getBoundingClientRect().top > 58) {
+        header.classList.add('hover')
+        hasHover = true
+
+        var video = header.querySelector('stream')
+        if (video) {
+          if (!video['data-playing']) {
+            video.parentNode.classList.add('skeleton-with-content')
+          }
+          if (!video['data-loaded']) {
+            video['data-loaded'] = true
+          }
+          try {
+            video.play()
+          } catch(_) {
+            video['data-playing'] = true
+            video.parentNode.classList.remove('skeleton-with-content')
+          }
+        }
+      } else {
+        header.classList.remove('hover')
+
+        var video = header.querySelector('stream')
+        if (video) {
+          video.parentNode.classList.remove('skeleton-with-content')
+          video.pause()
+          video['data-loaded'] = false
+        }
+      }
+    })
+  }, 100)
+}
+</script><svg aria-hidden="true" style="position: absolute; width: 0px; height: 0px; overflow: hidden;">
+  <symbol id="icon-location-fill" viewBox="0 0 1024 1024"><path d="M512 327c-29.9 0-58 11.6-79.2 32.8C411.7 381 400 409.1 400 439c0 29.9 11.7 58 32.8 79.2C454 539.3 482.1 551 512 551c29.9 0 58-11.7 79.2-32.8C612.4 497 624 468.9 624 439c0-29.9-11.6-58-32.8-79.2S541.9 327 512 327z"></path><path d="M854.6 289.1c-18.8-43.4-45.7-82.3-79.9-115.7-34.2-33.4-73.9-59.5-118.2-77.8C610.7 76.6 562.1 67 512 67c-50.1 0-98.7 9.6-144.5 28.5-44.3 18.3-84 44.5-118.2 77.8-34.2 33.4-61.1 72.4-79.9 115.7-19.5 45-29.4 92.8-29.4 142 0 70.6 16.9 140.9 50.1 208.7 26.7 54.5 64 107.6 111 158.1 80.3 86.2 164.5 138.9 188.4 153 6.9 4.1 14.7 6.1 22.4 6.1 7.8 0 15.5-2 22.4-6.1 23.9-14.1 108.1-66.8 188.4-153 47-50.4 84.3-103.6 111-158.1C867.1 572 884 501.8 884 431.1c0-49.2-9.9-97-29.4-142zM512 615c-97.2 0-176-78.8-176-176s78.8-176 176-176 176 78.8 176 176-78.8 176-176 176z"></path></symbol>
+  <symbol id="icon-search" viewBox="0 0 1024 1024"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6c3.2 3.2 8.4 3.2 11.6 0l43.6-43.5c3.2-3.2 3.2-8.4 0-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"></path></symbol>
+  <symbol id="icon-feed" viewBox="0 0 1024 1024"><path d="M320.374394 768q0 45.714286-32 77.714286t-77.714285 32-77.714286-32-32-77.714286 32-77.714286 77.714286-32 77.714285 32 32 77.714286z m292.571429 70.285714q1.142857 16-9.714286 27.428572-10.285714 12-26.857143 12H499.231537q-14.285714 0-24.571428-9.428572t-11.428572-23.714285q-12.571429-130.857143-105.428571-223.714286T134.08868 515.428571q-14.285714-1.142857-23.714286-11.428571T100.945823 479.428571V402.285714q0-16.571429 12-26.857143 9.714286-9.714286 24.571428-9.714285h2.857143q91.428571 7.428571 174.857143 46T463.231537 515.428571q65.142857 64.571429 103.714286 148t46 174.857143z m292.571428 1.142857q1.142857 15.428571-10.285714 26.857143-10.285714 11.428571-26.285714 11.428572h-81.714286q-14.857143 0-25.428571-10T750.660109 843.428571q-6.857143-122.857143-57.714286-233.428571t-132.285714-192-192-132.285714T135.231537 227.428571q-14.285714-0.571429-24.285714-11.142857T100.945823 191.428571V109.714286q0-16 11.428571-26.285715 10.285714-10.285714 25.142857-10.285714h1.714286q149.714286 7.428571 286.571429 68.571429T668.945823 309.714286q106.857143 106.285714 168 243.142857t68.571428 286.571428z"></path></symbol>
+  <symbol id="icon-right" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-0.4-12.9 6.3v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1c16.4-12.8 16.4-37.6 0-50.4z"></path></symbol>
+  <symbol id="icon-left" viewBox="0 0 1024 1024"><path d="M724 218.3V141c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8c-16.4 12.8-16.4 37.5 0 50.3l450.8 352.1c5.3 4.1 12.9 0.4 12.9-6.3v-77.3c0-4.9-2.3-9.6-6.1-12.6l-360-281 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"></path></symbol>
+  <symbol id="icon-mail-fill" viewBox="0 0 1024 1024"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32z m-80.8 108.9L531.7 514.4c-7.8 6.1-18.7 6.1-26.5 0L189.6 268.9c-1.8-1.4-2.8-3.5-2.8-5.7 0-4 3.2-7.2 7.2-7.2h648.8c2.2 0 4.3 1 5.7 2.8 2.4 3.1 1.9 7.6-1.3 10.1z"></path></symbol>
+  <symbol id="icon-github-fill" viewBox="0 0 1024 1024"><path d="M511.6 76.3C264.3 76.2 64 276.4 64 523.5 64 718.9 189.3 885 363.8 946c23.5 5.9 19.9-10.8 19.9-22.2v-77.5c-135.7 15.9-141.2-73.9-150.3-88.9C215 726 171.5 718 184.5 703c30.9-15.9 62.4 4 98.9 57.9 26.4 39.1 77.9 32.5 104 26 5.7-23.5 17.9-44.5 34.7-60.8-140.6-25.2-199.2-111-199.2-213 0-49.5 16.3-95 48.3-131.7-20.4-60.5 1.9-112.3 4.9-120 58.1-5.2 118.5 41.6 123.2 45.3 33-8.9 70.7-13.6 112.9-13.6 42.4 0 80.2 4.9 113.5 13.9 11.3-8.6 67.3-48.8 121.3-43.9 2.9 7.7 24.7 58.3 5.5 118 32.4 36.8 48.9 82.7 48.9 132.3 0 102.2-59 188.1-200 212.9 23.5 23.2 38.1 55.4 38.1 91v112.5c0.8 9 0 17.9 15 17.9 177.1-59.7 304.6-227 304.6-424.1 0-247.2-200.4-447.3-447.5-447.3z"></path></symbol>
+  <symbol id="icon-bluesky" viewBox="0 0 1024 1024"><path d="M512 485.888c-38.656-75.136-143.872-215.210667-241.706667-284.245333-93.738667-66.133333-129.450667-54.741333-152.874666-44.074667C90.282667 169.728 85.333333 211.413333 85.333333 235.861333c0 24.533333 13.44 200.917333 22.186667 230.4 29.013333 97.28 132.010667 130.133333 226.986667 119.594667-139.093333 20.608-262.698667 71.253333-100.693334 251.648 178.261333 184.533333 244.309333-39.552 278.186667-153.173333 33.877333 113.621333 72.874667 329.642667 274.944 153.173333 151.722667-153.173333 41.685333-231.04-97.408-251.648 94.933333 10.538667 197.973333-22.314667 226.944-119.594667 8.746667-29.44 22.186667-205.866667 22.186667-230.357333 0-24.533333-4.949333-66.133333-32.085334-78.421333-23.424-10.581333-59.136-22.058667-152.874666 44.074666-97.834667 69.162667-203.093333 209.237333-241.706667 284.330667z" p-id="2372"></path></symbol>
+  <symbol id="icon-telegram" viewBox="0 0 1024 1024"><path d="M512 938.666667C276.352 938.666667 85.333333 747.648 85.333333 512S276.352 85.333333 512 85.333333s426.666667 191.018667 426.666667 426.666667-191.018667 426.666667-426.666667 426.666667z m-132.693333-376.746667l0.554666-0.298667 37.12 122.453334c4.778667 13.269333 11.349333 15.658667 19.328 14.549333 8.021333-1.066667 12.245333-5.376 17.493334-10.410667l50.688-48.981333 108.8 80.554667c19.882667 10.965333 34.176 5.290667 39.125333-18.432l70.698667-333.738667c7.808-31.061333-5.845333-43.52-29.952-33.621333l-415.274667 160.426666c-28.330667 11.349333-28.16 27.221333-5.12 34.261334l106.538667 33.28z" p-id="5206"></path></symbol>
+</svg></body></html>

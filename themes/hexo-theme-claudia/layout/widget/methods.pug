@@ -1,0 +1,206 @@
+-
+    function isValidHttpUrl(string) {
+        let url;
+        
+        try {
+            url = new URL(string);
+        } catch (_) {
+            return false;  
+        }
+
+        return url.protocol === "http:" || url.protocol === "https:";
+    }
+
+    function getPostCoverImg(post) {
+        if (!post) {
+            return [false]
+        }
+
+        if (typeof post === 'string') {
+            if (isValidHttpUrl(post)) {
+                return [post]
+            }
+            if (post.startsWith('/') || post.startsWith('./') || post.startsWith('../')) {
+                return [post]
+            }
+        }
+
+        const firstImgElRegx = /<img[^>]+src="?([^"\s]+)".*?>/
+        const coverImgElement = post?.content?.match?.(firstImgElRegx) || post?.match?.(firstImgElRegx)
+
+        if (!coverImgElement){
+            return [false]
+        }
+
+        const width = coverImgElement[0].match(/<img[^>]+width="?([^"\s]+)".*?>/)
+        const height = coverImgElement[0].match(/<img[^>]+height="?([^"\s]+)".*?>/)
+
+        return [coverImgElement[1], width?.[1], height?.[1]]
+    }
+
+    function getSrcset(imageUrl, width, height, extention = '') {
+        if ( typeof imageUrl.slice === "function" ) {
+            if (
+                (
+                    imageUrl.startsWith("https://cdn.tloxygen.com/images/")
+                ) && ( imageUrl.endsWith("/large") || imageUrl.endsWith("/extra") )
+            ) {
+                const prefix = imageUrl.slice(0, -5);
+                width = parseInt(width ?? 0, 10)
+                height = parseInt(height ?? 0, 10)
+                if (!width || (width > 6500 || height > 6500)) {
+                    return prefix + `wide10k${extention} ${width > height ? width : height}w, ` +
+                        prefix + `wide6k${extention} 6500w, ` +
+                        prefix + `wide4k${extention} 4000w, ` +
+                        prefix + `extra${extention} 2600w, ` +
+                        prefix + `large${extention} 1500w, ` +
+                        prefix + `medium${extention} 800w`
+                }
+                if (width > 4000 || height > 4000) {
+                    return prefix + `wide6k${extention} ${width > height ? width : height}w, ` +
+                        prefix + `wide4k${extention} 4000w, ` +
+                        prefix + `extra${extention} 2600w, ` +
+                        prefix + `large${extention} 1500w, ` +
+                        prefix + `medium${extention} 800w`
+                }
+                if (width > 2600 || height > 2600) {
+                    return prefix + `wide4k${extention} ${width > height ? width : height}w, ` +
+                        prefix + `extra${extention} 2600w, ` +
+                        prefix + `large${extention} 1500w, ` +
+                        prefix + `medium${extention} 800w`
+                }
+                if (width > 1500 || height > 1500) {
+                    return prefix + `extra${extention} ${width > height ? width : height}w, ` +
+                        prefix + `large${extention} 1500w, ` +
+                        prefix + `medium${extention} 800w`
+                }
+                if (width > 800 || height > 800) {
+                    return prefix + `large${extention} ${width > height ? width : height}w, ` +
+                        prefix + `medium${extention} 800w`
+                }
+                if (width || height) {
+                    return prefix + `medium${extention} ${width > height ? width : height}w`
+                }
+                return prefix + `medium${extention} 800w`
+            } else if (
+                imageUrl.startsWith("https://customer-qz3v4c7e4vfly110.cloudflarestream.com/") &&
+                imageUrl.includes('/thumbnails/thumbnail.jpg')
+            ) {
+                const w2000 = new URL(imageUrl)
+                w2000.searchParams.set('width', '2000')
+                const w1200 = new URL(imageUrl)
+                w1200.searchParams.set('width', '1200')
+                const w800 = new URL(imageUrl)
+                w800.searchParams.set('width', '800')
+                return w2000 + ' 2000w, ' + w1200 + ' 1200w, ' + w800 + ' 800w'
+            }
+        }
+        
+        return ""
+    }
+
+    function getThumbnail(imageUrl) {
+        if ( typeof imageUrl.slice === "function" ) {
+            if (
+                imageUrl.startsWith("https://cdn.tloxygen.com/images/") &&
+                ( imageUrl.endsWith("/large") || imageUrl.endsWith("/extra") )
+            ) {
+                return imageUrl.slice(0, -5) + 'thumbnail'
+            } else if (
+                imageUrl.startsWith("https://customer-qz3v4c7e4vfly110.cloudflarestream.com/") &&
+                imageUrl.includes('/thumbnails/thumbnail.jpg')
+            ) {
+                const w200 = new URL(imageUrl)
+                w200.searchParams.set('width', '200')
+                w200.searchParams.set('height', '200')
+                return '' + w200
+            }
+        }
+        return imageUrl
+    }
+
+    function parseContent(content) {
+        return content.replace(/<picture([\w\W]+?)>(?:.|\n)*?<\/picture>/g, function(img) {
+            let alt = ''
+            let width = ''
+            img.replace(/<img([\w\W]+?)>/g, function(img) {
+                img.replace(/alt="([^"]+)"/, function(str) {
+                    alt = str.slice(5, -1)
+                })
+                img.replace(/width="([^"]+)"/, function(str) {
+                    width = str.slice(7, -1)
+                })
+            })
+            if (alt) {
+                return `<figure style="max-width: calc(${width ? width : 2600}px / var(--device-pixel-ratio))">${img}<figcaption>${alt}</figcaption></figure>`
+            }
+            return `<figure style="max-width: calc(${width ? width : 2600}px / var(--device-pixel-ratio))">${img}</figure>`
+        }).replace(/<img([\w\W]+?)>/g, function(img) {
+            let srcset = ''
+            let srcsetWebP = ''
+            let srcsetAVIF = ''
+            let src = ''
+            let alt = ''
+            let width = ''
+            let height = ''
+            let raw = ''
+            const sizes = '(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw'
+            img.replace(/alt="([^"]+)"/, function(str) {
+                alt = str.slice(5, -1)
+            })
+            img.replace(/width="([^"]+)"/, function(str) {
+                width = str.slice(7, -1)
+            })
+            img.replace(/height="([^"]+)"/, function(str) {
+                height = str.slice(8, -1)
+            })
+            img.replace(/src="([^"]+)"/, function(str) {
+                src = str.slice(5, -1)
+                srcset = getSrcset(src, width, height, '')
+                srcsetWebP = getSrcset(src, width, height, '.webp')
+                srcsetAVIF = getSrcset(src, width, height, '.avif')
+            })
+            let imgtag = `<picture><source type="image/avif" srcset="${srcsetAVIF}" sizes="${sizes}"><source type="image/webp" srcset="${srcsetWebP}" sizes="${sizes}"><img src="${src}" width="${width}" height="${height}" srcset="${srcset}" alt="${alt}" sizes="${sizes}" loading="lazy"></picture>`
+            img.replace(/data-raw="([^"]+)"/, function(str) {
+                raw = str.slice(10, -1)
+                imgtag = `<img src="${src}" width="${width}" height="${height}" srcset="${srcset}" alt="${alt}" sizes="${sizes}" loading="lazy">`
+            })
+            if (raw) {
+                return imgtag
+            } else if (alt) {
+                return `<figure style="max-width: calc(${width ? width : 2600}px / var(--device-pixel-ratio))">${imgtag}<figcaption>${alt}</figcaption></figure>`
+            }
+            return `<figure style="max-width: calc(${width ? width : 2600}px / var(--device-pixel-ratio))">${imgtag}</figure>`
+        }).replace(/<source([\w\W]+?)>/g, function(img) {
+            let srcset = ''
+            let src = ''
+            let media = ''
+            let type = ''
+            let width = ''
+            let height = ''
+            img.replace(/media="([^"]+)"/, function(str) {
+                media = str.slice(7, -1)
+            })
+            img.replace(/type="([^"]+)"/, function(str) {
+                type = str.slice(6, -1)
+            })
+            img.replace(/width="([^"]+)"/, function(str) {
+                width = str.slice(7, -1)
+            })
+            img.replace(/height="([^"]+)"/, function(str) {
+                height = str.slice(8, -1)
+            })
+            img.replace(/src="([^"]+)"/, function(str) {
+                src = str.slice(5, -1)
+                srcset = getSrcset(src, width, height)
+            })
+            if (media && src && !type.includes('video') && !type.includes('audio')) {
+                return `<source srcset="${srcset}" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" media="${media}" loading="lazy">`
+            }
+            return img
+        }).replace(/<iframe([\w\W]+?)>/g, function(iframe) {
+            return `<iframe loading="lazy"${iframe.slice(7)}`
+        }).replace(/<table([\w\W]+?)>(?:.|\n)*?<\/table>/g, function(table) {
+            return `<figure class="my-table">${table}</figure>`
+        })
+    }

@@ -1,0 +1,121 @@
+extends widget/base
+block append head
+    meta(name="description", content!= truncate( strip_html(page.content), {length: 360, omission: '..'} ))
+    if theme.comment_valine && theme.comment_valine.enable
+        script(src="//unpkg.com/valine/dist/Valine.min.js")
+block topic
+
+block content
+    include widget/methods
+    - const tocContentRaw = toc(page.content, {list_number: false})
+    - const tocContent = toc(page.content + ((page.comments || typeof page.comments === "undefined") ? `<h2 id="footer">${__('comment')}</h2>` : ''), {list_number: false})
+    main.container.section.post-page.pt-4.px-3
+        .columns.content.is-flex-desktop.is-justify-content-center.is-flex-direction-row-reverse.px-1
+            if page.toc || typeof page.toc === "undefined"
+                .column.is-3.toc-container.is-hidden-mobile!= tocContent
+            .column.is-9
+                header.my-4
+                    if page.categories && page.categories.length > 0 && page.categories.toArray
+                        each category in page.categories.toArray()
+                            a(href= url_for(`/${category.path}`))
+                                if __(`${config.language2}.${category.name}`) != `${config.language2}.${category.name}`
+                                    i.tag.post-item-tag
+                                        span(lang=config.language1)= category.name
+                                        span.is-hidden(lang=config.language2)= __(`${config.language2}.${category.name}`)
+                                else
+                                    i.tag.post-item-tag= category.name
+                    if page.tags && page.tags.length > 0 && page.tags.toArray
+                        each tag in page.tags.toArray()
+                            a(href= url_for(`/${tag.path}`))
+                                if __(`${config.language2}.${tag.name}`) != `${config.language2}.${tag.name}`
+                                    i.tag.post-item-tag
+                                        span(lang=config.language1)= tag.name
+                                        span.is-hidden(lang=config.language2)= __(`${config.language2}.${tag.name}`)
+                                else
+                                    i.tag.post-item-tag= tag.name
+                if page.title_cn
+                    h1.mt-0.mb-1.is-family-serif#postTitle
+                        span(lang="en-US")= page.title
+                        span.is-hidden(lang="zh-CN")= page.title_cn
+                else
+                    h1.mt-0.mb-1.is-family-serif#postTitle= page.title
+                if page.date
+                    time.has-text-grey(datetime=page.date.toJSON())= date(page.date, date_format)
+                article.mt-2.post-content
+                    if (page.toc || typeof page.toc === "undefined") && tocContent
+                        div.is-hidden-tablet.mb-4
+                            != tocContent
+                    - page_content = parseContent(page.content)
+                    if theme.adsense && theme.adb && (page.adb || typeof page.adb === "undefined")
+                        div.tloC.is-hidden.tloWarp!= parseContent(theme.adb)
+                    div!= page_content
+                    if page_content.includes('<pre><code>')
+                        - hasCode = true
+                section.post-bottom-topic.mt-6.pt-5.pb-4
+                    - let bottomTitle = truncate( page.title, {length: 65, omission: '..'} ) || ''
+                    p.has-text-weight-semibold.is-family-serif= bottomTitle
+                    a.button.is-default.mt-2.has-text-weight-semibold(href="#postTitle" rel="nofollow") Click back to the top
+                if page.video
+                    a.button.is-default.mt-2.has-text-weight-semibold(href=`https://customer-qz3v4c7e4vfly110.cloudflarestream.com/${page.video}/downloads/default.mp4` target="_blank" rel="noopener nofollow" lang=config.language1)= __('download_movie')
+                    a.button.is-default.mt-2.has-text-weight-semibold.is-hidden(href=`https://customer-qz3v4c7e4vfly110.cloudflarestream.com/${page.video}/downloads/default.mp4` target="_blank" rel="noopener nofollow" lang=config.language2)= __(`${config.language2}.download_movie`)
+                //- section.jump-container.is-flex.is-justify-content-space-between.my-6
+                //-     // em is empty placeholder
+                //-     if page.prev
+                //-         - const preContent= `${ page.prev.title }`
+                //-         a.button.is-default(href= url_for(page.prev.path) title= page.prev.title)
+                //-             i.iconfont.icon-prev.mr-2.has-text-grey
+                //-             span.has-text-weight-semibold= preContent
+                //-     else
+                //-         em
+                //-     if page.next
+                //-         - const nextContent= `${ page.next.title }`
+                //-         a.button.is-default(href= url_for(page.next.path) title= page.next.title)
+                //-             span.has-text-weight-semibold= nextContent
+                //-             i.iconfont.icon-next.ml-2.has-text-grey
+
+        div#footer
+        .columns.is-flex-desktop.is-justify-content-center.comment-container.is-flex-direction-row-reverse.mt-1.pt-3#commentContainer
+            aside.column.is-4-tablet.is-3-widescreen.post-container
+                include widget/widget-search
+                //- if theme.widgets.includes('profile')
+                //-     include widget/widget-profile
+                if theme.links && theme.links.length > 0
+                    include widget/widget-links
+                if theme.widgets.includes('adsense') && (page.ads || typeof page.ads === "undefined")
+                    include widget/widget-adsense
+            section.column.comment-box#commentBox
+                if page.comments || typeof page.comments === "undefined"
+                    if theme.comment_utteranc && theme.comment_utteranc.enable
+                        article.comment
+                            script(
+                                async
+                                repo= theme.comment_utteranc.repo
+                                src= "https://utteranc.es/client.js"
+                                label= theme.comment_utteranc.label
+                                issue-term= theme.comment_utteranc.issue_term || "pathname"
+                                theme= theme.comment_utteranc.theme || "preferred-color-scheme"
+                            )
+                    if theme.comment_valine && theme.comment_valine.enable
+                        article.comment#vcomments(
+                            data-comment_valine_id= theme.comment_valine.appId
+                            data-comment_valine_key= theme.comment_valine.appKey
+                        )
+                    if theme.comment_disqus && theme.comment_disqus.enable
+                        div#disqus_thread
+                        article.comment#disqus
+                            script="var disqus_config = function () {this.page.url = '"+theme.comment_disqus.url+url_for(page.path)+"';this.page.identifier = '"+theme.comment_disqus.name+"';};"
+                            script="(function() {var d = document, s = d.createElement('script');s.src = 'https://"+theme.comment_disqus.name+".disqus.com/embed.js';s.setAttribute('data-timestamp', +new Date());(d.head || d.body).appendChild(s);})();"
+                            script(id="dsq-count-scr", src="//blog-pubgj2togw.disqus.com/count.js", async)
+block append script
+    script.
+        $posts.mounted()
+    if hasCode
+        script(async src= url_for("/js/highlight.pack.js") onload="hljs.highlightAll()")
+    //- script.
+    //-     $claudia.fadeInImage(null, $claudia.blurBackdropImg)
+
+    //-     window.addEventListener('resize', $claudia.throttle(function () {
+    //-         var images = document.querySelectorAll('.js-img-fadeIn')
+
+    //-         images.forEach($claudia.blurBackdropImg)
+    //-     }, 150))

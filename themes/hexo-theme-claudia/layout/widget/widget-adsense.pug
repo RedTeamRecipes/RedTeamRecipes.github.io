@@ -1,0 +1,89 @@
+
+span#beforeA
+if theme.adsense
+    ins.aside-card-container.categories-widget.p-0.adsbygoogle#widgetA(
+            style="display:block; border-radius: 6px"
+            data-ad-client= theme.adsense
+            data-ad-slot="6951388710"
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+        )
+span#afterA
+script.
+    (adsbygoogle = window.adsbygoogle || []).push({})
+if theme.ads && theme.ads.length > 0
+    each ad in theme.ads
+        a(href= ad.link)
+            main.aside-card-container.categories-widget.tloA.is-hidden
+                h3
+                    i.tag.post-item-tag= __('ads')
+                    = ad.title
+                section!= ad.content
+    script.
+        addEventListener('load', function(){
+            var widgetA = document.getElementById('widgetA')
+            var beforeA = document.getElementById('beforeA')
+            var afterA = document.getElementById('afterA')
+            var testTloA = function() {
+                if(
+                    !widgetA ||
+                    !widgetA.clientHeight ||
+                    !beforeA ||
+                    !afterA ||
+                    afterA.offsetTop - beforeA.offsetTop < 30 ||
+                    !window.adsbygoogle ||
+                    (widgetA && widgetA.dataset && widgetA.dataset.adStatus === 'unfilled')
+                ) {
+                    var tloA = document.getElementsByClassName('tloA')
+                    if (tloA) {
+                        for (var i = 0; i < tloA.length; i++) {
+                            tloA[i].classList.remove('is-hidden')
+                        }
+                    }
+                    var tloB = document.getElementsByClassName('tloB')
+                    if (tloB) {
+                        for (var i = 0; i < tloB.length; i++) {
+                            tloB[i].classList.add('is-hidden')
+                        }
+                    }
+                    var tloC = document.getElementsByClassName('tloC')
+                    var tloD = document.getElementsByClassName('tloD')
+                    if (tloC) {
+                        if (!window.adsbygoogle || !widgetA || !widgetA.dataset || widgetA.dataset.adStatus !== 'unfilled') {
+                            for (var i = 0; i < tloC.length; i++) {
+                                tloC[i].classList.remove('is-hidden')
+                            }
+                            for (var i = 0; i < tloD.length; i++) {
+                                tloD[i].classList.add('is-hidden')
+                            }
+                        } else {
+                            for (var i = 0; i < tloC.length; i++) {
+                                tloC[i].classList.add('is-hidden')
+                            }
+                            for (var i = 0; i < tloD.length; i++) {
+                                tloD[i].classList.remove('is-hidden')
+                            }
+                        }
+                    }
+                } else {
+                    var tloA = document.getElementsByClassName('tloA')
+                    if (tloA) {
+                        for (var i = 0; i < tloA.length; i++) {
+                            tloA[i].classList.add('is-hidden')
+                        }
+                    }
+                    var tloB = document.getElementsByClassName('tloB')
+                    if (tloB) {
+                        for (var i = 0; i < tloB.length; i++) {
+                            tloB[i].classList.remove('is-hidden')
+                        }
+                    }
+                }
+            }
+            testTloA()
+            setTimeout(testTloA, 500)
+            setTimeout(testTloA, 1000)
+            setTimeout(testTloA, 2000)
+            setTimeout(testTloA, 4000)
+            setTimeout(testTloA, 8000)
+        })

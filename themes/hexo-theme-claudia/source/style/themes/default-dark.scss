@@ -1,0 +1,20 @@
+@mixin dark{
+  --primary-bg-color: #010101;
+  --second-bg-color: #050506;
+  --third-bg-color: #0a0a0d;
+
+  --primary-text-color: #f5f5f7;
+  --second-text-color: #b7b7c0;
+
+  --border-line-color: rgba(255, 77, 77, 0.28);
+  --border-line-color-2: rgba(255, 255, 255, 0.02);
+  --top-bar-bg-color: rgba(5, 5, 6, 0.95);
+  --blockquote-border-color: rgba(255, 77, 77, 0.35);
+  --table-border-color: rgba(255, 255, 255, 0.1);
+  --pre-code-bg-color: rgba(255, 255, 255, 0.015);
+
+  --skeleton-bg-color: #2b2b2b;
+  --skeleton-flash-color: 0.05;
+
+  --avatar-border-color: rgba(255, 77, 77, 0.25);
+}

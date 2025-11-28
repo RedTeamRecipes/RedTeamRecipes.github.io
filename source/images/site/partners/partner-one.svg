@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">
+  <rect width="300" height="120" fill="#0c1624"/>
+  <path d="M30 30h70v15H30zm0 25h50v15H30zm0 25h90v15H30z" fill="#00f6a2"/>
+  <text x="150" y="70" fill="#fff" font-family="'Space Grotesk',sans-serif" font-size="28" text-anchor="middle">Partner One</text>
+</svg>

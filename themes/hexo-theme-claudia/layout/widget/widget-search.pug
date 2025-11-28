@@ -1,0 +1,57 @@
+main.aside-card-container.search-widget.is-relative#searchContainer
+    label(for="searchInput")
+        div#searchButton.is-flex.px-4
+                svg.icon.mr-1
+                    use(xlink:href="#icon-search")
+                input#searchInput.search-input.is-flex-grow-1(placeholder= _p('search_input_placeholder'))
+    section#searchContent.search-content.content
+
+script.
+    (function() {
+        var columnsEl = document.getElementById('columns')
+        var searchContainerEl = document.getElementById('searchContainer')
+        var searchInputEl = document.getElementById('searchInput')
+        var searchButtonEl = document.getElementById('searchButton')
+        var searchResultEl = document.getElementById('searchContent')
+        var commentEl = document.getElementById('commentContainer')
+
+        searchInputEl.onfocus = function() {
+            searchContainerEl.classList.add("focus-within")
+            columnsEl && columnsEl.classList.add("focus-within")
+            commentEl && commentEl.classList.add("focus-within")
+        }
+
+        searchInputEl.onblur = function(evt) {
+            if (!evt.srcElement.value.trim()) {
+                searchContainerEl.classList.remove("focus-within")
+                columnsEl && columnsEl.classList.remove("focus-within")
+                commentEl && commentEl.classList.remove("focus-within")
+            }
+        }
+
+        searchInputEl.oninput = function (evt) {
+            var searchValue = evt.srcElement.value
+            var haveSearchValue = Boolean(searchValue.trim())
+            if (!haveSearchValue) {
+                searchResultEl.style.maxHeight = 0
+                return
+            }
+
+
+            var searchResults = searching(searchValue)
+
+            if (searchResults.length > 0) {
+                renderSearchResults(searchResults, searchResultEl)
+            }
+        }
+
+        searchButtonEl.onclick = function () {
+            if (searchDatabase.length > 0) return;
+
+            fetch('/search.xml').then(res => res.text()).then(res => {
+                var domparser = new DOMParser
+                var doc = domparser.parseFromString(res, 'application/xml')
+                searchDatabase = doc.getElementsByTagName('search')[0].children
+            })
+        }
+    })()

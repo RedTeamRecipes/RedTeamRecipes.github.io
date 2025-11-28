@@ -1,0 +1,22 @@
+extends widget/base
+
+block content
+    - var isIndex = true
+    include widget/widget-post-list
+        block sidebar
+            div(class= `${page.current === 1 && is_home() ? 'is-hidden-mobile-and-portrait' : ''}`)
+                include widget/widget-search
+                if theme.widgets.includes('profile')
+                    include widget/widget-profile
+            if theme.iframe
+                iframe(src= theme.iframe style="width: 100%; height: 446px; box-shadow: 0 6px 30px -10px rgba(0, 0, 0, 0.1); margin-bottom: 9px;" loading="lazy")
+            if theme.widgets.includes('category') && site.categories.length > 0
+                include widget/widget-categories
+            if theme.widgets.includes('archive')
+                include widget/widget-archives
+            if theme.widgets.includes('tag') && site.tags.length > 0
+                include widget/widget-tag
+            if theme.links && theme.links.length > 0
+                include widget/widget-links
+            if theme.widgets.includes('adsense')
+                include widget/widget-adsense

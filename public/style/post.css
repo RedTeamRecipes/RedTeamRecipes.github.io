@@ -1,0 +1,280 @@
+#postTopic {
+  cursor: pointer;
+  will-change: transform;
+  transform: translateY(100%);
+}
+#postTopic p {
+  color: var(--primary-text-color);
+}
+#postTopic.is-show-scrollToTop-tips {
+  transition: transform 300ms linear 300ms;
+  transform: translateY(-100%);
+}
+#postTopic.is-flash-scrollToTop-tips {
+  transition: transform 300ms linear 900ms;
+  transform: translateY(0);
+}
+#postTopic.is-switch-post-title {
+  transition: none;
+  transform: translateY(0);
+}
+#postTopic.is-show-post-title {
+  transition: transform 300ms linear;
+  transform: translateY(0);
+}
+#postTopic.is-hidden-topic-bar {
+  transition: transform 100ms linear;
+  transform: translateY(100%);
+}
+#postTopic.immediately-show {
+  transition: none;
+  transform: translateY(0);
+}
+
+.post-page .post-content code {
+  border-radius: 4px;
+  background: var(--third-bg-color);
+}
+.post-page .post-content pre {
+  padding: 0;
+  background: transparent;
+  position: relative;
+}
+.post-page .post-content pre code {
+  padding: 15px;
+  border: 1px solid var(--border-line-color);
+  background: var(--pre-code-bg-color);
+}
+.post-page .post-content .hljs {
+  color: var(--second-text-color);
+}
+.post-page .post-content img {
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  opacity: 1;
+  will-change: opacity;
+}
+.post-page .post-content img.js-img-fadeIn {
+  opacity: 0;
+}
+.post-page .post-content a {
+  color: #ff4d4d;
+}
+.post-page .jump-container .button {
+  max-width: calc(50% - 5px);
+}
+.post-page .jump-container .button span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.post-page .comment-container {
+  border-top: 1px solid var(--border-line-color);
+  padding: 0 4px;
+}
+.post-page .comment-container .column {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+@media screen and (min-width: 769px) {
+  .post-page .comment-container .column {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+@media screen and (min-width: 1024px) {
+  .post-page .comment-container .column {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+.post-page .toc {
+  list-style: disc !important;
+}
+.post-page .toc ol {
+  margin-top: 5px;
+  margin-left: 15px;
+  list-style: disc !important;
+}
+.post-page .toc-container .toc {
+  position: sticky;
+  top: 60px;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 15px;
+  height: calc(100vh - 100px);
+  overflow: auto;
+  border-left: 1px solid var(--border-line-color);
+  list-style: none !important;
+}
+.post-page .toc-container .toc::-webkit-scrollbar {
+  display: none;
+}
+.post-page .toc-container .toc .is-active span {
+  color: #ff4d4d !important;
+}
+.post-page .toc-container .toc ol {
+  list-style: none !important;
+}
+.post-page :target {
+  padding-top: 60px;
+  margin-top: -60px !important;
+}
+.post-page .comment-box {
+  padding: 0.25rem;
+}
+.post-page .post-bottom-topic {
+  border-top: 1px solid var(--border-line-color);
+  text-align: center;
+}
+.post-page .post-bottom-topic p {
+  font-size: 1.2rem;
+  color: var(--primary-text-color);
+  margin-bottom: 0.75rem;
+}
+.post-page .post-bottom-topic .button {
+  width: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.post-page .code-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  border-radius: 999px;
+  background: rgba(10, 10, 12, 0.85);
+  color: var(--activeColor);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+.post-page .code-copy-btn:hover {
+  background: var(--activeColor);
+  color: #041619;
+}
+.post-page .md-callout {
+  margin: 1.5rem 0;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 77, 77, 0.25);
+  background: rgba(12, 12, 17, 0.9);
+  box-shadow: 0 15px 35px -25px rgba(0, 0, 0, 0.7);
+}
+.post-page .md-callout__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.post-page .md-callout__body p:last-child {
+  margin-bottom: 0;
+}
+@media screen and (min-width: 769px) {
+  .post-page .comment {
+    margin-bottom: 15px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px -10px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    background: var(--second-bg-color);
+    border: 1px solid var(--border-line-color-2);
+    padding: 6px;
+    min-height: calc(100% - 15px);
+  }
+  .post-page .comment-box {
+    padding: 0.75rem;
+  }
+}
+.post-page .utterances {
+  max-width: unset !important;
+}
+.post-page figure.highlight {
+  margin: 1.5rem 0;
+  padding: 0;
+  background: rgba(10, 10, 14, 0.9);
+  border: 1px solid rgba(255, 77, 77, 0.15);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.post-page figure.highlight .my-table,
+.post-page figure.highlight table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.post-page figure.highlight .gutter {
+  display: none;
+}
+.post-page figure.highlight .code {
+  width: 100%;
+  padding: 1rem 1.25rem;
+}
+.post-page figure.highlight .code pre {
+  margin: 0;
+  font-family: "Space Mono", "SFMono-Regular", monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.post-page figure.my-table {
+  margin: 1.5rem 0;
+  background: rgba(10, 10, 14, 0.95);
+  border: 1px solid rgba(255, 77, 77, 0.12);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.post-page figure.my-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.post-page figure.my-table td.code {
+  padding: 1rem 1.25rem;
+}
+.post-page figure.my-table pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.post-page figure.my-table span {
+  font-family: "Space Mono", "SFMono-Regular", monospace !important;
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  font-weight: 400 !important;
+  color: var(--second-text-color) !important;
+}
+.post-page figure.my-table span.title,
+.post-page figure.my-table span.meta,
+.post-page figure.my-table span.keyword,
+.post-page figure.my-table span.built_in,
+.post-page figure.my-table span.type,
+.post-page figure.my-table span.function_,
+.post-page figure.my-table span.comment,
+.post-page figure.my-table span.string,
+.post-page figure.my-table span.number {
+  font-size: inherit !important;
+  font-weight: 400 !important;
+  color: var(--second-text-color) !important;
+}
+.post-page figure.my-table span.keyword,
+.post-page figure.my-table span.function_,
+.post-page figure.my-table span.selector-tag,
+.post-page figure.my-table span.type {
+  color: var(--activeColor) !important;
+}
+.post-page figure.my-table span.number {
+  display: inline !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--second-text-color) !important;
+  font-weight: 400 !important;
+}

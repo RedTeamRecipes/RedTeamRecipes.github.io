@@ -1,0 +1,101 @@
+:root.appearance-light {
+  --primary-bg-color: #f7f7f7;
+  --second-bg-color: #ffffff;
+  --third-bg-color: #f0f0f0;
+  --primary-text-color: #1e1618;
+  --second-text-color: #463c3f;
+  --top-bar-bg-color: rgba(255, 255, 255, 0.96);
+  --border-line-color-2: rgba(30, 22, 24, 0.12);
+  --border-line-color: rgba(30, 22, 24, 0.25);
+  --blockquote-border-color: rgba(255, 77, 77, 0.4);
+  --table-border-color: rgba(30, 22, 24, 0.2);
+  --pre-code-bg-color: rgba(30, 22, 24, 0.05);
+  --skeleton-bg-color: #e2dede;
+  --skeleton-flash-color: 0.35;
+  --avatar-border-color: rgba(255, 77, 77, 0.35);
+}
+
+:root.appearance-dark {
+  --primary-bg-color: #010101;
+  --second-bg-color: #050506;
+  --third-bg-color: #0a0a0d;
+  --primary-text-color: #f5f5f7;
+  --second-text-color: #b7b7c0;
+  --border-line-color: rgba(255, 77, 77, 0.28);
+  --border-line-color-2: rgba(255, 255, 255, 0.02);
+  --top-bar-bg-color: rgba(5, 5, 6, 0.95);
+  --blockquote-border-color: rgba(255, 77, 77, 0.35);
+  --table-border-color: rgba(255, 255, 255, 0.1);
+  --pre-code-bg-color: rgba(255, 255, 255, 0.015);
+  --skeleton-bg-color: #2b2b2b;
+  --skeleton-flash-color: 0.05;
+  --avatar-border-color: rgba(255, 77, 77, 0.25);
+}
+
+:root.appearance-auto {
+  --primary-bg-color: #f7f7f7;
+  --second-bg-color: #ffffff;
+  --third-bg-color: #f0f0f0;
+  --primary-text-color: #1e1618;
+  --second-text-color: #463c3f;
+  --top-bar-bg-color: rgba(255, 255, 255, 0.96);
+  --border-line-color-2: rgba(30, 22, 24, 0.12);
+  --border-line-color: rgba(30, 22, 24, 0.25);
+  --blockquote-border-color: rgba(255, 77, 77, 0.4);
+  --table-border-color: rgba(30, 22, 24, 0.2);
+  --pre-code-bg-color: rgba(30, 22, 24, 0.05);
+  --skeleton-bg-color: #e2dede;
+  --skeleton-flash-color: 0.35;
+  --avatar-border-color: rgba(255, 77, 77, 0.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root.appearance-auto {
+    --primary-bg-color: #010101;
+    --second-bg-color: #050506;
+    --third-bg-color: #0a0a0d;
+    --primary-text-color: #f5f5f7;
+    --second-text-color: #b7b7c0;
+    --border-line-color: rgba(255, 77, 77, 0.28);
+    --border-line-color-2: rgba(255, 255, 255, 0.02);
+    --top-bar-bg-color: rgba(5, 5, 6, 0.95);
+    --blockquote-border-color: rgba(255, 77, 77, 0.35);
+    --table-border-color: rgba(255, 255, 255, 0.1);
+    --pre-code-bg-color: rgba(255, 255, 255, 0.015);
+    --skeleton-bg-color: #2b2b2b;
+    --skeleton-flash-color: 0.05;
+    --avatar-border-color: rgba(255, 77, 77, 0.25);
+  }
+}
+
+:root {
+  --backdropFilter: 20px;
+  --borderRadius: 6px;
+  --activeColor: #ff4d4d;
+  --boxShadow: 0 45px 70px -45px rgba(0, 0, 0, .95);
+}
+:root.appearance-dark, :root.appearance-auto, :root.appearance-light {
+  background: var(--primary-bg-color);
+}
+:root.appearance-dark h1, :root.appearance-dark h2, :root.appearance-dark h3, :root.appearance-dark h4, :root.appearance-dark h5, :root.appearance-dark h6, :root.appearance-auto h1, :root.appearance-auto h2, :root.appearance-auto h3, :root.appearance-auto h4, :root.appearance-auto h5, :root.appearance-auto h6, :root.appearance-light h1, :root.appearance-light h2, :root.appearance-light h3, :root.appearance-light h4, :root.appearance-light h5, :root.appearance-light h6 {
+  color: var(--primary-text-color) !important;
+}
+:root.appearance-dark hr, :root.appearance-auto hr, :root.appearance-light hr {
+  background: var(--third-bg-color);
+}
+:root.appearance-dark p, :root.appearance-dark strong, :root.appearance-dark dl, :root.appearance-dark ul, :root.appearance-dark ol, :root.appearance-dark cite, :root.appearance-dark figcaption, :root.appearance-auto p, :root.appearance-auto strong, :root.appearance-auto dl, :root.appearance-auto ul, :root.appearance-auto ol, :root.appearance-auto cite, :root.appearance-auto figcaption, :root.appearance-light p, :root.appearance-light strong, :root.appearance-light dl, :root.appearance-light ul, :root.appearance-light ol, :root.appearance-light cite, :root.appearance-light figcaption {
+  color: var(--second-text-color);
+}
+:root.appearance-dark .post-container span, :root.appearance-dark .about-page span, :root.appearance-auto .post-container span, :root.appearance-auto .about-page span, :root.appearance-light .post-container span, :root.appearance-light .about-page span {
+  color: var(--second-text-color);
+}
+:root.appearance-dark .content blockquote, :root.appearance-auto .content blockquote, :root.appearance-light .content blockquote {
+  background: var(--third-bg-color);
+  border-color: var(--blockquote-border-color);
+}
+:root.appearance-dark .content table th, :root.appearance-dark .content table tr, :root.appearance-dark .content table td, :root.appearance-auto .content table th, :root.appearance-auto .content table tr, :root.appearance-auto .content table td, :root.appearance-light .content table th, :root.appearance-light .content table tr, :root.appearance-light .content table td {
+  border-color: var(--table-border-color);
+  color: var(--second-text-color) !important;
+}
+:root .code {
+  text-align: left;
+}

@@ -1,0 +1,48 @@
+doctype html
+html(lang=config.language class= `appearance-auto`)
+  head
+    meta(charset='UTF-8')
+    meta(name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, initial-scale=1, viewport-fit=cover")
+
+    link(rel="icon" href= url_for(theme.favicon))
+    link(rel="stylesheet" href= url_for('/style/base.css'))
+    script(src= url_for("/js/common.js"))
+    style.
+      :root body {
+        padding-top: 0;
+      }
+      .post-container .aside-card-container {
+        margin-bottom: 0;
+        height: 100%;
+      }
+      .recent-post-ellipses {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: calc( 100vw - 77px );
+      }
+      html {
+        width: 100vw;
+        overflow: hidden;
+      }
+      body {
+        margin: 0 !important;
+        width: 100vw !important;
+      }
+
+  body.is-flex.is-flex-direction-column
+    main.post-container
+      block content
+
+    if config.language1 && config.language2 
+      script.
+        switch( (navigator.language || navigator.userLanguage || "").slice(0, 2).toLowerCase() ) {
+          case "#{config.language1}".slice(0, 2).toLowerCase():
+            document.querySelectorAll('span[lang="#{config.language1}"], i[lang="#{config.language1}"], a[lang="#{config.language1}"]').forEach(span => span.classList.remove('is-hidden'))
+            document.querySelectorAll('span[lang="#{config.language2}"], i[lang="#{config.language2}"], a[lang="#{config.language2}"]').forEach(span => span.classList.add('is-hidden'))
+            break;
+          case "#{config.language2}".slice(0, 2).toLowerCase():
+            document.querySelectorAll('span[lang="#{config.language2}"], i[lang="#{config.language2}"], a[lang="#{config.language2}"]').forEach(span => span.classList.remove('is-hidden'))
+            document.querySelectorAll('span[lang="#{config.language1}"], i[lang="#{config.language1}"], a[lang="#{config.language1}"]').forEach(span => span.classList.add('is-hidden'))
+            break;
+        }
